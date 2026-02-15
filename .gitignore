@@ -1,0 +1,61 @@
+# ────────────────────────────────────────────────
+# Root-level .gitignore (applies to the whole repo)
+# ────────────────────────────────────────────────
+
+# General / OS files
+.DS_Store
+Thumbs.db
+*.log
+*.tmp
+*.bak
+*.swp
+
+# Editor / IDE files
+.vscode/
+.idea/
+*.sublime-project
+*.sublime-workspace
+
+# Environment / secrets (never commit real .env files)
+.env
+.env.local
+.env.development
+.env.production
+.env*.local
+
+# Python / FastAPI related (also in backend/.gitignore if you want)
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.pytest_cache/
+.coverage
+coverage.xml
+htmlcov/
+
+# Node / React related (also in frontend/.gitignore)
+node_modules/
+bun.lockb
+bunfig.toml
+dist/
+build/
+.cache/
+.eslintcache
+.prettierrc.cache
+
+# Database / migration temp files
+*.sqlite3
+*.db
+migrations/
+
+# Logs & temp
+logs/
+tmp/
+temp/
+
+# ────────────────────────────────────────────────
+# Optional: ignore large files or downloads
+# *.zip
+# *.rar
+# downloads/
+# ────────────────────────────────────────────────
