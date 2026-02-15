@@ -1,0 +1,62 @@
+# ===============================
+# Python
+# ===============================
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+*.egg-info/
+*.egg
+build/
+dist/
+
+# Virtual Environment
+ABEYONIXenv/
+venv/
+env/
+
+# Environment Variables
+.env
+.env.*
+
+# ===============================
+# FastAPI / Project Specific
+# ===============================
+media/
+uploads/
+staticfiles/
+
+# Alembic cache
+alembic/versions/__pycache__/
+
+# Logs
+*.log
+
+# Database
+*.sqlite3
+*.db
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# VS Code
+.vscode/
+
+# IDE
+.idea/
+
+# Coverage
+.coverage
+htmlcov/
+
+# Pytest
+.pytest_cache/
+
+# Node (if frontend inside project)
+node_modules/
+build/
+dist/
+
+# Migrations cache
+__pycache__/
