@@ -20,7 +20,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-app.mount("/media", StaticFiles(directory="media"), name="media")
+# app.mount("/media", StaticFiles(directory="media"), name="media")
 
 
 # Add Startup Event
