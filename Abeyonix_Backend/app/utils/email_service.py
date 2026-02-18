@@ -2,6 +2,7 @@ import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from app.core.config import settings
+# import resend
 
 
 def send_email(to_email: str, subject: str, html_content: str) -> bool:
@@ -32,3 +33,34 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
     except Exception as e:
         print("Email send failed:", e)
         return False
+
+
+
+
+
+
+# def send_email(to_email: str, subject: str, html_content: str) -> bool:
+#     resend.api_key = settings.RESEND_API_KEY
+
+#     params = {
+#         "from": f"Abeyonix <{settings.FROM_EMAIL}>",   # ← must be verified
+#         "to": to_email,
+#         "subject": subject,
+#         "html": html_content,
+#         "reply_to": settings.FROM_EMAIL,               # optional but recommended
+#         # Optional: add plain text fallback
+#         "text": (
+#             "Verify Your Account\n\n"
+#             "Use the OTP sent to your email.\n"
+#             "This OTP is valid for 10 minutes.\n\n"
+#             "Regards,\nAbeyonix Team"
+#         ),
+#     }
+
+#     try:
+#         response = resend.Emails.send(params)
+#         print("Email sent successfully, ID:", response["id"])  # for logging
+#         return True
+#     except Exception as e:
+#         print("Resend email failed:", e)
+#         return False
