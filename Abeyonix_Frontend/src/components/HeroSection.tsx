@@ -101,7 +101,7 @@ const HeroSection = () => {
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-heading leading-tight mb-6 md:mb-8 italic">
                 Cinematic Drone
                 <br />
-                Aerial Visuals
+                Aerial Visual
               </h1>
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 mt-6 md:mt-8 justify-center md:justify-start">
