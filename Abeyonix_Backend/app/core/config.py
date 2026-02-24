@@ -21,7 +21,7 @@ class Settings(BaseSettings):
     SMTP_PASSWORD:str = os.getenv("SMTP_PASSWORD")
     FROM_EMAIL:str = os.getenv("FROM_EMAIL")
 
-    # RESEND_API_KEY: str = os.getenv("RESEND_API_KEY")
+    RESEND_API_KEY: str = os.getenv("RESEND_API_KEY")
 
     PHONEPE_ENV :str = os.getenv("PHONEPE_ENV")
     PHONEPE_MERCHANT_ID : str = os.getenv("PHONEPE_MERCHANT_ID")
