@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react';
 import { Check } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
 
 const HeroSection = () => {
   const [activeSlide, setActiveSlide] = useState(0);
+  const navigate = useNavigate();
 
   const features = [
     'Certified Drone Pilots',
@@ -115,13 +117,17 @@ const HeroSection = () => {
 
               {/* CTA Buttons */}
               <div className="flex flex-col sm:flex-row gap-4 mt-10 md:mt-14 items-center md:items-start">
-                <button className="btn-primary px-7 w-full sm:w-auto">
+                <button
+                  onClick={() => navigate("/services")}
+                  className="btn-primary px-7 w-full sm:w-auto"
+                >
                   Explore More
                 </button>
 
                 <button
+                  onClick={() => navigate("/shop")}
                   className="px-7 py-3 w-full sm:w-auto rounded-full border border-white/30
-                  bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition"
+    bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition"
                 >
                   Shop Now
                 </button>
@@ -188,12 +194,13 @@ const HeroSection = () => {
 
               {/* Description */}
               <p className="text-primary-foreground/80 text-center lg:text-right max-w-xs mb-6 text-sm">
-                Lorem ipsum dolor sit amet, consectetur adipiscing elit.
+                Experience breathtaking aerial cinematography powered by certified pilots
+                and cutting-edge drone technology.
               </p>
 
-              <button className="btn-primary w-full sm:w-auto mb-10 sm:mb-0">
+              {/* <button className="btn-primary w-full sm:w-auto mb-10 sm:mb-0">
                 Discover More
-              </button>
+              </button> */}
             </div>
           </div>
         </div>

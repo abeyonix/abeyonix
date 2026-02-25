@@ -10,7 +10,7 @@ const ComingSoon = () => {
       // Drone crashes after 2.5 seconds
       setDroneCrashed(true);
     }, 2500);
-    
+
     const showTextTimer = setTimeout(() => {
       // Show "Coming Soon" text after 3 seconds
       setShowText(true);
@@ -23,14 +23,14 @@ const ComingSoon = () => {
   }, []);
 
   return (
-    <div className="relative h-screen max-h-[600px] bg-gradient-to-b from-sky-200 to-sky-400 overflow-hidden">
+    <div className="relative h-screen  bg-gradient-to-b from-sky-200 to-sky-400 overflow-hidden">
       {/* Clouds for atmosphere */}
       <div className="absolute top-10 left-10 w-24 h-12 bg-white rounded-full opacity-80"></div>
       <div className="absolute top-20 right-20 w-32 h-16 bg-white rounded-full opacity-70"></div>
       <div className="absolute top-32 left-1/4 w-28 h-14 bg-white rounded-full opacity-75"></div>
-      
+
       {/* Drone Image */}
-      <div 
+      <div
         className={`absolute z-10 ${droneCrashed ? 'drone-crash' : 'drone-fly'}`}
         style={{
           top: droneCrashed ? '60%' : '20%',
@@ -38,16 +38,16 @@ const ComingSoon = () => {
           transform: droneCrashed ? 'translateX(-50%) rotate(45deg)' : 'translateX(0) rotate(0deg)',
         }}
       >
-        <img 
-          src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png" 
-          alt="Drone" 
+        <img
+          src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png"
+          alt="Drone"
           className="w-32 h-32 object-contain"
         />
       </div>
-      
+
       {/* Crash effect */}
       {droneCrashed && (
-        <div 
+        <div
           className="absolute z-20"
           style={{
             bottom: '30%',
@@ -58,19 +58,26 @@ const ComingSoon = () => {
           <div className="explosion"></div>
         </div>
       )}
-      
+
+      {/* Static Brand Name - Always Visible */}
+      <div className="absolute top-16 w-full flex justify-center z-30">
+        <h2 className="text-2xl md:text-3xl font-semibold text- tracking-widest">
+          ABEYONIX
+        </h2>
+      </div>
+
       {/* Coming Soon Text */}
       {showText && (
         <div className="absolute inset-0 flex items-center justify-center z-30">
           <h1 className="text-5xl md:text-7xl font-bold text-white coming-soon-text">
-            Coming Soon
+            Something interesting is cooking
           </h1>
         </div>
       )}
-      
+
       {/* Ground */}
       <div className="absolute bottom-0 left-0 w-full h-24 bg-green-400 rounded-t-full"></div>
-      
+
       <style>{`
         @keyframes fly-in {
           0% {
