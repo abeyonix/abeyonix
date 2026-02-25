@@ -3,10 +3,14 @@ import Header from '@/components/Header';
 import Footer from '@/components/Footer';
 import PageHeader from '@/components/PageHeader';
 import ServicesSection from '@/components/ServicesSection'; // Import the existing component
+import { createService } from '@/api/service'; // adjust path if needed
 
 const ServicesPage = () => {
     const sectionRef = useRef(null);
     const formRef = useRef(null);
+    const [loading, setLoading] = useState(false);
+    const [successMessage, setSuccessMessage] = useState('');
+    const [errorMessage, setErrorMessage] = useState('');
     const [selectedService, setSelectedService] = useState('');
     const [formData, setFormData] = useState({
         name: '',
@@ -69,7 +73,7 @@ const ServicesPage = () => {
     const handleServiceClick = (serviceTitle) => {
         setSelectedService(serviceTitle);
         setFormData(prev => ({ ...prev, serviceType: serviceTitle }));
-        
+
         // Scroll to form
         formRef.current?.scrollIntoView({ behavior: 'smooth' });
     };
@@ -79,11 +83,45 @@ const ServicesPage = () => {
         setFormData(prev => ({ ...prev, [name]: value }));
     };
 
-    const handleSubmit = (e) => {
+    const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
-        // Handle form submission here
-        console.log('Form submitted:', formData);
-        // You could add a success message or redirect here
+
+        try {
+            setLoading(true);
+            setSuccessMessage('');
+            setErrorMessage('');
+
+            const payload = {
+                name: formData.name,
+                email: formData.email,
+                mobile_number: formData.mobile, // map correctly
+                city: formData.city,
+                service_type: formData.serviceType,
+                message: formData.message,
+            };
+
+            const response = await createService(payload);
+
+            // ✅ Only using POST response
+            setSuccessMessage('Service booking submitted successfully!');
+
+            // Reset form
+            setFormData({
+                name: '',
+                email: '',
+                mobile: '',
+                city: '',
+                serviceType: '',
+                message: '',
+            });
+
+        } catch (error: any) {
+            setErrorMessage(
+                error?.response?.data?.detail || 'Something went wrong.'
+            );
+        } finally {
+            setLoading(false);
+        }
     };
 
     return (
@@ -167,6 +205,19 @@ const ServicesPage = () => {
                                     Fill out the form below and we'll get back to you as soon as possible.
                                 </p>
                             </div>
+
+                            {successMessage && (
+                                <div className="mb-6 p-4 bg-green-100 text-green-700 rounded-md">
+                                    {successMessage}
+                                </div>
+                            )}
+
+                            {errorMessage && (
+                                <div className="mb-6 p-4 bg-red-100 text-red-700 rounded-md">
+                                    {errorMessage}
+                                </div>
+                            )}
+
 
                             <form onSubmit={handleSubmit} className="bg-white rounded-lg shadow-lg p-8">
                                 <div className="grid md:grid-cols-2 gap-6 mb-6">
@@ -271,9 +322,10 @@ const ServicesPage = () => {
                                 <div className="text-center">
                                     <button
                                         type="submit"
-                                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-md transition-colors duration-300"
+                                        disabled={loading}
+                                        className="bg-orange-500 hover:bg-orange-600 text-white font-bold py-3 px-8 rounded-md transition-colors duration-300 disabled:opacity-50"
                                     >
-                                        Submit Booking Request
+                                        {loading ? "Submitting..." : "Submit Booking Request"}
                                     </button>
                                 </div>
                             </form>
