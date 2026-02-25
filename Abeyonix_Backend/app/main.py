@@ -8,7 +8,7 @@ from app.api.v1 import (
     auth, users, categories,
     sub_categories, attributes,
     product, shop, address, cart,
-    orders, payment
+    orders, payment, services
 )
 
 Base.metadata.create_all(bind=engine)
@@ -47,6 +47,7 @@ app.add_middleware(
 app.include_router(auth.router)
 app.include_router(users.router)
 app.include_router(address.router)
+app.include_router(services.router)
 app.include_router(categories.router)
 app.include_router(sub_categories.router)
 app.include_router(attributes.router)
