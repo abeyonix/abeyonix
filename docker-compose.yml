@@ -17,7 +17,16 @@ services:
 
     command: >
       gunicorn app.main:app
-      --workers 4
+      --workers 2
       --worker-class uvicorn.workers.UvicornWorker
       --bind 0.0.0.0:8000
       --timeout 120
+
+  frontend:
+    build: ./Abeyonix_Frontend
+    container_name: abeyonix_frontend
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    depends_on:
+      - api
