@@ -1,6 +1,8 @@
 services:
   jenkins:
-    build: ./Dockerfile.jenkins
+    build:
+      context: .
+      dockerfile: Dockerfile.jenkins
     image: jenkins:lts
     user: root
     container_name: jenkins
