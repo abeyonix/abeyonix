@@ -23,13 +23,12 @@ WORKDIR /app
 RUN corepack enable
 RUN corepack prepare pnpm@10.12.4 --activate
 
-ENV NODE_ENV=production
+# install static server
+RUN pnpm add -g serve
 
-COPY --from=builder /app/package.json ./
-COPY --from=builder /app/.next ./.next
-COPY --from=builder /app/public ./public
-COPY --from=builder /app/node_modules ./node_modules
+# copy built files
+COPY --from=builder /app/build ./build
 
 EXPOSE 3000
 
-CMD ["pnpm", "start"]
+CMD ["serve", "-s", "build", "-l", "3000"]
