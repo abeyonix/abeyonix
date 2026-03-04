@@ -1,28 +1,36 @@
 version: "3.9"
 
 services:
+
   api:
     build: ./Abeyonix_Backend/.
     container_name: abenyonix_backend
-    ports:
-      - "8081:8000"
     restart: unless-stopped
 
-    # Load env vars if you use them
     env_file:
       - ./Abeyonix_Backend/.env
 
     volumes:
       - ./Abeyonix_Backend:/app
 
+    expose:
+      - "8000"
+
     command: >
-      gunicorn app.main:app --workers 1 --worker-class uvicorn.workers.UvicornWorker --bind 0.0.0.0:8000 --timeout 120
+      gunicorn app.main:app
+      --workers 1
+      --worker-class uvicorn.workers.UvicornWorker
+      --bind 0.0.0.0:8000
+      --timeout 120
+
 
   frontend:
     build: ./Abeyonix_Frontend/.
     container_name: abeyonix_frontend
     restart: unless-stopped
-    ports:
-      - "3000:80"
+
+    expose:
+      - "80"
+
     depends_on:
       - api
