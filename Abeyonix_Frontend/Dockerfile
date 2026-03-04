@@ -1,39 +1,29 @@
-# ---------- Builder ----------
-FROM node:22-slim AS builder
+# ---- Stage 1: Build ----
+FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-RUN corepack enable
-RUN corepack prepare pnpm@10.12.4 --activate
+# Install dependencies
+COPY package*.json ./
+RUN npm ci
 
-COPY package.json pnpm-lock.yaml ./
-
-RUN pnpm install --frozen-lockfile
-
+# Copy source code
 COPY . .
 
-RUN pnpm build
+# Build app
+RUN npm run build
 
 
-# ---------- Runner ----------
-FROM node:22-slim
+# ---- Stage 2: Production ----
+FROM nginx:alpine
 
-WORKDIR /app
+# Remove default nginx config
+RUN rm -rf /usr/share/nginx/html/*
 
-RUN corepack enable
-RUN corepack prepare pnpm@10.12.4 --activate
+# Copy built app from builder stage
+COPY --from=builder /app/build /usr/share/nginx/html
 
-# Setup PNPM global directory
-ENV PNPM_HOME="/pnpm"
-ENV PATH="$PNPM_HOME:$PATH"
-
-RUN pnpm setup
-
-# Install serve globally
-RUN pnpm add -g serve
-
-COPY --from=builder /app/build ./build
-
+# Expose port
 EXPOSE 3000
 
-CMD ["serve", "-s", "build", "-l", "3000"]
+CMD ["nginx", "-g", "daemon off;"]
