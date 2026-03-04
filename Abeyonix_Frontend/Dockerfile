@@ -1,29 +1,32 @@
-# ---- Stage 1: Build ----
+# ---------- Stage 1: Build ----------
 FROM node:18-alpine AS builder
 
 WORKDIR /app
 
-# Install dependencies
+# install dependencies
 COPY package*.json ./
 RUN npm ci
 
-# Copy source code
+# copy source
 COPY . .
 
-# Build app
+# build project
 RUN npm run build
 
 
-# ---- Stage 2: Production ----
+# ---------- Stage 2: Production ----------
 FROM nginx:alpine
 
-# Remove default nginx config
-RUN rm -rf /usr/share/nginx/html/*
+# remove default nginx config
+RUN rm /etc/nginx/conf.d/default.conf
 
-# Copy built app from builder stage
+# copy custom nginx config
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# copy build files
 COPY --from=builder /app/dist /usr/share/nginx/html
 
-# Expose port
+# expose port
 EXPOSE 80
 
 CMD ["nginx", "-g", "daemon off;"]
