@@ -23,10 +23,15 @@ WORKDIR /app
 RUN corepack enable
 RUN corepack prepare pnpm@10.12.4 --activate
 
-# install static server
+# Setup PNPM global directory
+ENV PNPM_HOME="/pnpm"
+ENV PATH="$PNPM_HOME:$PATH"
+
+RUN pnpm setup
+
+# Install serve globally
 RUN pnpm add -g serve
 
-# copy built files
 COPY --from=builder /app/build ./build
 
 EXPOSE 3000
