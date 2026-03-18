@@ -17,7 +17,7 @@ import { CartProvider } from "./context/CartContext";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentStatus from "./pages/PaymentStatus";
 import ComingSoonPage from "./pages/ComingSoonPage";
-import OrderSuccessPage from "./pages/OrderSuccessPage";
+// import OrderSuccessPage from "./pages/OrderSuccessPage";
 
 import {
   PrivacyPolicy,
@@ -56,10 +56,10 @@ const App = () => (
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/payment-status" element={<PaymentStatus />} />
               <Route path="/comming-soon" element={<ComingSoonPage />} />
-              <Route
+              {/* <Route
                 path="/order-success/:orderId"
                 element={<OrderSuccessPage />}
-              />
+              /> */}
 
               {/* POLICY */}
 
