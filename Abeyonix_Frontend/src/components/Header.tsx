@@ -20,7 +20,7 @@ import { useCart } from "@/context/CartContext";
 import { getCartItems } from "@/api/cart";
 import type { CartItemResponse } from "@/types/cart";
 import { formatPrice } from "@/utils/formatPrice";
-import logo from "@/assets/Abeyonix_LOGO.png";
+import logo from "@/assets/abeyonix_header_logo.png";
 
 const Header = () => {
   const location = useLocation();

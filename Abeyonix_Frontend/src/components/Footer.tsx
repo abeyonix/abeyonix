@@ -1,7 +1,7 @@
 import { Phone, Mail, MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import footerLogo from "@/assets/abeyonix_footer_logo.png";
-import logo from "@/assets/Abeyonix_LOGO.png"
+import logo from "@/assets/abeyonix_header_logo.png"
 
 const Footer = () => {
   const { user } = useAuth();
