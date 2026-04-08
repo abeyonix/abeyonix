@@ -27,7 +27,7 @@ def send_email(to_email: str, subject: str, html_content: str) -> bool:
             server.starttls()
             server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
             server.sendmail(settings.FROM_EMAIL, to_email, msg.as_string())
-
+        print ("Email sent successfully to:", to_email)  # for logging
         return True
 
     except Exception as e:

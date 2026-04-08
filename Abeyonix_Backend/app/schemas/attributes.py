@@ -51,6 +51,28 @@ class CategoryAttributeOut(CategoryAttributeBase):
     id: int
     category_name: Optional[str] = None
     sub_category_name: Optional[str] = None
+    attribute_name: Optional[str] = None
+
+    class Config:
+        from_attributes = True
+
+
+
+
+# ----------------------
+
+class CategoryAttributeResponse(BaseModel):
+    id: int
+
+    category_id: int
+    category_name: Optional[str]
+
+    sub_category_id: Optional[int]
+    sub_category_name: Optional[str]
+
+    attribute_id: int
+    attribute_name: Optional[str]
+    unit: Optional[str]  
 
     class Config:
         from_attributes = True

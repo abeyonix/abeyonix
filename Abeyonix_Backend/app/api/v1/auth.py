@@ -9,6 +9,7 @@ from app.schemas.auth import *
 from app.utils.security import hash_password, verify_password, create_access_token
 from app.utils.email_service import send_email
 from app.utils.otp import generate_otp, otp_expiry
+from datetime import datetime
 import uuid
 
 router = APIRouter(prefix="/api/v1/auth", tags=["Auth Management"])
@@ -183,7 +184,13 @@ def verify_registration_otp(
     if user.is_verify:
         raise HTTPException(status_code=400, detail="User already verified")
 
-    # 🔍 Find valid OTP
+    # 🧹 STEP 1: Delete expired OTPs (cleanup)
+    db.query(OTPVerification).filter(
+        # OTPVerification.user_id == user.user_id,
+        OTPVerification.expires_at < datetime.utcnow()
+    ).delete(synchronize_session=False)
+
+    # 🔍 STEP 2: Find valid OTP
     otp_record = (
         db.query(OTPVerification)
         .filter(
@@ -199,17 +206,17 @@ def verify_registration_otp(
     if not otp_record:
         raise HTTPException(status_code=400, detail="Invalid OTP")
 
-    # ⏳ Expiry check
+    # ⏳ Expiry check (extra safety)
     if otp_record.expires_at < datetime.utcnow():
         raise HTTPException(status_code=400, detail="OTP expired")
 
     # ✅ Verify user
     user.is_verify = True
 
-    # 🗑️ Delete ALL OTPs for this user (clean up)
+    # 🗑️ STEP 3: Delete ALL OTPs for this user (final cleanup)
     db.query(OTPVerification).filter(
         OTPVerification.user_id == user.user_id
-    ).delete()
+    ).delete(synchronize_session=False)
 
     db.commit()
 

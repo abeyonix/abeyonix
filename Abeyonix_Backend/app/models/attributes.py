@@ -58,3 +58,6 @@ class CategoryAttribute(Base):
     @property
     def sub_category_name(self):
         return self.sub_category.name if self.sub_category else None
+    @property
+    def attribute_name(self):
+        return self.attribute.name if self.attribute else None

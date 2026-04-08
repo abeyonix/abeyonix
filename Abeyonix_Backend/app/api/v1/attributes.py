@@ -1,6 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.orm import Session
-from typing import List
+from fastapi import APIRouter, Depends, HTTPException, status, Query as FastQuery
+from sqlalchemy.orm import Session, joinedload
+from typing import List,Optional
 
 from app.db.base import Base
 from app.db.session import get_db  # Your DB session dependency
@@ -11,7 +11,8 @@ from app.schemas.attributes import (
     AttributeOut,
     CategoryAttributeCreate,
     CategoryAttributeUpdate,
-    CategoryAttributeOut
+    CategoryAttributeOut,
+    CategoryAttributeResponse
 )
 
 router = APIRouter(
@@ -94,9 +95,49 @@ def create_category_attribute(
 
 
 # ---------------- READ ALL ----------------
-@router.get("/category-attributes/", response_model=List[CategoryAttributeOut])
-def get_all_category_attributes(db: Session = Depends(get_db)):
-    return db.query(CategoryAttribute).all()
+@router.get("/category-attributes/", response_model=List[CategoryAttributeResponse])
+def get_category_attributes(
+    category_id: Optional[int] = FastQuery(None),
+    sub_category_id: Optional[int] = FastQuery(None),
+    db: Session = Depends(get_db)
+):
+    query = (
+        db.query(CategoryAttribute)
+        .options(
+            joinedload(CategoryAttribute.category),
+            joinedload(CategoryAttribute.sub_category),
+            joinedload(CategoryAttribute.attribute),
+        )
+    )
+
+    # ✅ Apply filters dynamically
+    if category_id:
+        query = query.filter(CategoryAttribute.category_id == category_id)
+
+    if sub_category_id:
+        query = query.filter(CategoryAttribute.sub_category_id == sub_category_id)
+
+    results = query.all()
+
+    # ✅ Format response
+    response = []
+
+    for row in results:
+        response.append({
+            "id": row.id,
+
+            "category_id": row.category_id,
+            "category_name": row.category_name,
+
+            "sub_category_id": row.sub_category_id,
+            "sub_category_name": row.sub_category_name,
+
+            "attribute_id": row.attribute_id,
+            "attribute_name": row.attribute_name,
+            "unit": row.attribute.unit if row.attribute else None
+        })
+
+    return response
 
 
 # ---------------- READ ONE ----------------
@@ -159,3 +200,12 @@ def delete_category_attribute(
     db.delete(mapping)
     db.commit()
     return
+
+
+
+
+#------------------------------------
+#
+#------------------------------------
+
+

@@ -89,7 +89,7 @@ def get_shop_products(
     category_id: Optional[int] = None,
     sub_category_id: Optional[int] = None,
 
-    last_id: Optional[int] = None,   # cursor
+    last_id: Optional[int] = None,
     limit: int = 12,
 
     db: Session = Depends(get_db),
@@ -102,15 +102,32 @@ def get_shop_products(
     )
 
     # -------- Filters --------
-    if category_id:
-        query = query.filter(Product.category_id == category_id)
-
+    # ✅ Subcategory filter (PRIORITY)
     if sub_category_id:
         query = query.filter(Product.sub_category_id == sub_category_id)
 
-    # -------- Cursor Pagination --------
-    if last_id:
-        query = query.filter(Product.id < last_id)
+    # ✅ Category filter (only if subcategory NOT provided)
+    elif category_id:
+
+        # Get category
+        category = db.query(Category).filter(Category.id == category_id).first()
+
+        if category:
+            # Check if it has children
+            child_categories = db.query(Category.id).filter(
+                Category.parent_id == category_id
+            ).all()
+
+            child_ids = [c.id for c in child_categories]
+
+            if child_ids:
+                # 👉 Parent category → include children + itself
+                query = query.filter(
+                    Product.category_id.in_([category_id] + child_ids)
+                )
+            else:
+                # 👉 Leaf category
+                query = query.filter(Product.category_id == category_id)
 
     products = (
         query

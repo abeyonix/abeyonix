@@ -58,16 +58,20 @@ class CheckoutPageResponse(BaseModel):
 # -------------------------------------------------------
 
 
-class CreateOrderRequest(BaseModel):
+class PlaceOrderRequest(BaseModel):
     user_id: int
-    shipping_address_id: int
+    address_id: int
+
+    # Buy Now flow
+    product_id: Optional[int] = None
+    quantity: Optional[int] = 1
 
 
-class BuyNowRequest(BaseModel):
-    user_id: int
-    product_id: int
-    quantity: int
-    shipping_address_id: int
+class PlaceOrderResponse(BaseModel):
+    order_id: int
+    order_number: str
+    total_amount: Decimal
+    order_status: str
 
 
 class OrderItemResponse(BaseModel):
@@ -140,6 +144,16 @@ class UserOrderItemInfo(BaseModel):
         from_attributes = True
 
 
+class OrderTrackingInfo(BaseModel):
+    status: str
+    description: Optional[str]
+    location: Optional[str]
+    updated_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
 class UserOrderWithItems(BaseModel):
     order_id: int
     order_number: str
@@ -148,10 +162,28 @@ class UserOrderWithItems(BaseModel):
     total_amount: Decimal
     created_at: datetime
     items: List[UserOrderItemInfo]
+    tracking: List[OrderTrackingInfo]
 
 
 class UserOrderListResponse(BaseModel):
     total_orders: int
     orders: List[UserOrderWithItems]
 
+class AdminOrderListResponse(BaseModel):
+    total_orders: int
+    page: int
+    page_size: int
 
+    total_count: int  # all records count (for pagination)
+
+    widgets: dict
+
+    orders: List[UserOrderWithItems]
+
+
+
+class UpdateOrderTrackingRequest(BaseModel):
+    order_id: int
+    status: str
+    description: Optional[str] = None
+    location: Optional[str] = None

@@ -10,9 +10,9 @@ from app.models.attributes import *
 from app.models.categories import Category
 from app.models.sub_categories import SubCategory
 from app.models.product import ProductMedia, ProductAttributeValue, Pricing, Inventory
-from app.utils.media import save_image
+from app.utils.media import delete_image, save_image
 from app.schemas.product import *
-from app.utils.slug import generate_slug
+from app.utils.slug import generate_slug, generate_sku
 
 router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 
@@ -21,8 +21,6 @@ router = APIRouter(prefix="/api/v1/products", tags=["Products"])
 def create_product(
     # -------- Product ----------
     name: str = Form(...),
-    sku: str = Form(...),
-    # slug: str = Form(...),
     category_id: int = Form(...),
     sub_category_id: Optional[int] = Form(None),
     brand: Optional[str] = Form(None),
@@ -50,7 +48,7 @@ def create_product(
         # ---------- Product ----------
         product = Product(
             name=name,
-            sku=sku,
+            sku=generate_sku(),
             slug=generate_slug(name),
             category_id=category_id,
             sub_category_id=sub_category_id,
@@ -364,8 +362,6 @@ def update_product(
 
     # -------- Product ----------
     name: str = Form(...),
-    sku: str = Form(...),
-    # slug: str = Form(...),
     category_id: int = Form(...),
     sub_category_id: Optional[int] = Form(None),
     brand: Optional[str] = Form(None),
@@ -398,7 +394,7 @@ def update_product(
 
         # ---------- Update Product ----------
         product.name = name
-        product.sku = sku
+        product.sku = generate_sku()
         product.slug = generate_slug(name)
         product.category_id = category_id
         product.sub_category_id = sub_category_id
@@ -450,13 +446,18 @@ def update_product(
             )
 
         # ---------- Media ----------
-        keep_media_ids = json.loads(existing_media_ids) if existing_media_ids else []
+        keep_media_ids = json.loads(existing_media_ids) if existing_media_ids else None
 
-        # Delete removed media
-        db.query(ProductMedia).filter(
-            ProductMedia.product_id == product_id,
-            ~ProductMedia.id.in_(keep_media_ids)
-        ).delete(synchronize_session=False)
+        # Delete removed media (DB + FILE)
+        if keep_media_ids is not None:
+            media_to_delete = db.query(ProductMedia).filter(
+                ProductMedia.product_id == product_id,
+                ~ProductMedia.id.in_(keep_media_ids)
+            ).all()
+
+        for media in media_to_delete:
+            delete_image(media.url)  # ✅ delete file from disk
+            db.delete(media)         # ✅ delete DB record
 
         # Add new images
         new_media = []
@@ -482,8 +483,11 @@ def update_product(
             .all()
         )
 
-        for i, media in enumerate(all_media):
-            media.is_primary = (i == primary_image_index)
+        for media in all_media:
+            media.is_primary = False
+
+        if 0 <= primary_image_index < len(all_media):
+            all_media[primary_image_index].is_primary = True
 
         db.commit()
 
@@ -496,3 +500,48 @@ def update_product(
         db.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
+
+
+
+@router.delete("/{product_id}", status_code=200)
+def delete_product(
+    product_id: int,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    # ✅ Soft delete
+    product.is_active = False
+
+    db.commit()
+
+    return {
+        "message": "Product deleted successfully (soft delete)",
+        "product_id": product.id
+    }
+
+
+
+@router.patch("/{product_id}/status", status_code=200)
+def update_product_status(
+    product_id: int,
+    is_active: bool,
+    db: Session = Depends(get_db)
+):
+    product = db.query(Product).filter(Product.id == product_id).first()
+
+    if not product:
+        raise HTTPException(status_code=404, detail="Product not found")
+
+    product.is_active = is_active
+
+    db.commit()
+
+    return {
+        "message": f"Product {'activated' if is_active else 'deactivated'} successfully",
+        "product_id": product.id,
+        "is_active": product.is_active
+    }

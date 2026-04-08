@@ -8,7 +8,7 @@ from app.api.v1 import (
     auth, users, categories,
     sub_categories, attributes,
     product, shop, address, cart,
-    orders, payment, services
+    orders, payment, services, inquiry
 )
 
 Base.metadata.create_all(bind=engine)
@@ -56,6 +56,7 @@ app.include_router(shop.router)
 app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(payment.router)
+app.include_router(inquiry.router)
 
 
 # Health Check

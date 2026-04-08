@@ -13,6 +13,9 @@ class CartItemBase(BaseModel):
 class CartItemCreate(CartItemBase):
     pass
 
+class BulkCartItemCreate(BaseModel):
+    items: List[CartItemCreate]
+
 class CartItemUpdate(BaseModel):
     quantity: Optional[int] = None
     is_active: Optional[bool] = None

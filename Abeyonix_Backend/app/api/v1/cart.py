@@ -5,7 +5,7 @@ from typing import List
 from app.db.base import get_db
 from app.models.cart import CartItem
 from app.models.product import Product, ProductMedia, Inventory
-from app.schemas.cart import CartItemCreate, CartItemUpdate, CartItemResponse, CartListResponse
+from app.schemas.cart import CartItemCreate, BulkCartItemCreate, CartItemUpdate, CartItemResponse, CartListResponse
 
 router = APIRouter(prefix="/api/v1/cart", tags=["Cart"])
 
@@ -138,7 +138,8 @@ def add_cart_item(payload: CartItemCreate, db: Session = Depends(get_db)):
         if new_quantity > inventory.quantity:
             raise HTTPException(
                 status_code=400,
-                detail=f"Only {inventory.quantity} items available in stock"
+                # detail=f"Only {inventory.quantity} items available in stock"
+                detail="Your cart quantity is higher than available stock. Please reduce quantity."
             )
 
         existing_item.quantity = new_quantity
@@ -167,6 +168,100 @@ def add_cart_item(payload: CartItemCreate, db: Session = Depends(get_db)):
     db.refresh(cart_item)
 
     return build_cart_response(cart_item, db)
+
+
+# -----------------------------
+# Add multiple items to cart
+# -----------------------------
+@router.post("/bulk", response_model=List[CartItemResponse])
+def add_bulk_cart_items(
+    payload: BulkCartItemCreate,
+    db: Session = Depends(get_db)
+):
+    response_items = []
+
+    try:
+        for item in payload.items:
+
+            # 🔍 Check inventory
+            inventory = (
+                db.query(Inventory)
+                .filter(Inventory.product_id == item.product_id)
+                .first()
+            )
+
+            if not inventory:
+                raise HTTPException(
+                    400,
+                    f"Inventory not found for product {item.product_id}"
+                )
+
+            if item.quantity > inventory.quantity:
+                raise HTTPException(
+                    400,
+                    f"Only {inventory.quantity} items available for product {item.product_id}"
+                )
+
+            # 🔍 Check existing cart item
+            existing_item = (
+                db.query(CartItem)
+                .filter(
+                    CartItem.user_id == item.user_id,
+                    CartItem.product_id == item.product_id,
+                    CartItem.is_active == True
+                )
+                .first()
+            )
+
+            # ✅ If exists → update
+            if existing_item:
+                new_quantity = existing_item.quantity + item.quantity
+
+                if new_quantity > inventory.quantity:
+                    raise HTTPException(
+                        400,
+                        f"Only {inventory.quantity} items available for product {item.product_id}"
+                    )
+
+                existing_item.quantity = new_quantity
+                existing_item.total_price = (
+                    existing_item.quantity * existing_item.unit_price
+                )
+
+                db.flush()
+
+                response_items.append(
+                    build_cart_response(existing_item, db)
+                )
+
+            # ✅ Else → create new
+            else:
+                total_price = item.quantity * item.unit_price
+
+                cart_item = CartItem(
+                    user_id=item.user_id,
+                    product_id=item.product_id,
+                    quantity=item.quantity,
+                    unit_price=item.unit_price,
+                    total_price=total_price,
+                    session_id=item.session_id,
+                    is_active=True
+                )
+
+                db.add(cart_item)
+                db.flush()
+
+                response_items.append(
+                    build_cart_response(cart_item, db)
+                )
+
+        db.commit()
+
+        return response_items
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(400, str(e))
 
 
 # -----------------------------
