@@ -1,17 +1,16 @@
-import { useEffect, useState, useRef } from 'react';
-import { ShoppingCart, ChevronRight, ChevronDown, Menu } from 'lucide-react';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import ProductDetails from '@/components/ProductDetails';
-import { ShopProductItem } from '@/types/shop';
-import { getCategoryTree } from '@/api/shop';
-import { getShopProducts } from '@/api/shop';
-import { useCart } from '@/context/CartContext';
-import { useNavigate } from 'react-router-dom';
-import { searchProducts } from '@/api/shop';
-import { ProductSearchItem } from '@/types/shop';
-import { formatPrice } from '@/utils/formatPrice';
-
+import { useEffect, useState, useRef } from "react";
+import { ShoppingCart, ChevronRight, ChevronDown, Menu } from "lucide-react";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import ProductDetails from "@/components/ProductDetails";
+import { ShopProductItem } from "@/types/shop";
+import { getCategoryTree } from "@/api/shop";
+import { getShopProducts } from "@/api/shop";
+import { useCart } from "@/context/CartContext";
+import { useNavigate } from "react-router-dom";
+import { searchProducts } from "@/api/shop";
+import { ProductSearchItem } from "@/types/shop";
+import { formatPrice } from "@/utils/formatPrice";
 
 interface Category {
   id: number;
@@ -42,10 +41,14 @@ const ShopPage = () => {
   const [hasMore, setHasMore] = useState(true);
   const [loading, setLoading] = useState(false);
 
-  const [selectedCategoryId, setSelectedCategoryId] = useState<number | undefined>();
-  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<number | undefined>();
+  const [selectedCategoryId, setSelectedCategoryId] = useState<
+    number | undefined
+  >();
+  const [selectedSubCategoryId, setSelectedSubCategoryId] = useState<
+    number | undefined
+  >();
 
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchQuery, setSearchQuery] = useState("");
   const [searchResults, setSearchResults] = useState<ProductSearchItem[]>([]);
   const [searchCursor, setSearchCursor] = useState<number | null>(null);
   const [searchHasMore, setSearchHasMore] = useState(true);
@@ -53,11 +56,8 @@ const ShopPage = () => {
   const [searchLoading, setSearchLoading] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
 
-
-
   const { addToCart } = useCart();
   const navigate = useNavigate();
-
 
   const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL;
 
@@ -65,10 +65,7 @@ const ShopPage = () => {
     title: "Shop",
     backgroundImage:
       "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-8WMN5XW.jpg",
-    breadcrumbs: [
-      { label: 'Home', href: '/' },
-      { label: 'Shop' },
-    ],
+    breadcrumbs: [{ label: "Home", href: "/" }, { label: "Shop" }],
   };
 
   useEffect(() => {
@@ -77,19 +74,18 @@ const ShopPage = () => {
         const data = await getCategoryTree();
         setCategories(data);
       } catch (error) {
-        console.error('Failed to load categories', error);
+        console.error("Failed to load categories", error);
       }
     };
 
     fetchCategories();
   }, []);
 
-
   // PRODUCT FETCH FUNCTION (SCROLL-SAFE)
   const fetchProducts = async (
     reset = false,
     categoryId?: number,
-    subCategoryId?: number
+    subCategoryId?: number,
   ) => {
     if (loading || (!hasMore && !reset)) return;
 
@@ -102,25 +98,21 @@ const ShopPage = () => {
         last_id: reset ? undefined : lastId,
       });
 
-      setProducts(prev =>
-        reset ? data.items : [...prev, ...data.items]
-      );
+      setProducts((prev) => (reset ? data.items : [...prev, ...data.items]));
 
       setLastId(data.last_id);
       setHasMore(data.has_more);
     } catch (err) {
-      console.error('Failed to load products', err);
+      console.error("Failed to load products", err);
     } finally {
       setLoading(false);
     }
   };
 
-
   // INITIAL LOAD (ALL PRODUCTS)
   useEffect(() => {
     fetchProducts(true);
   }, []);
-
 
   // Search API handler
   const fetchSearchProducts = async (reset = false) => {
@@ -137,31 +129,30 @@ const ShopPage = () => {
         limit: 10,
       });
 
-      setSearchResults(prev =>
-        reset ? data.items : [...prev, ...data.items]
+      setSearchResults((prev) =>
+        reset ? data.items : [...prev, ...data.items],
       );
 
       setSearchCursor(data.next_cursor ?? null);
       setSearchHasMore(!!data.next_cursor);
     } catch (err) {
-      console.error('Search failed', err);
+      console.error("Search failed", err);
     } finally {
       setSearchLoading(false);
     }
   };
 
-
   useEffect(() => {
     const query = searchQuery.trim();
 
-  // Reset when less than 3 characters
-  if (query.length < 3) {
-    setSearchResults([]);
-    setSearchCursor(null);
-    setSearchHasMore(true);
-    setSearchOpen(false);
-    return;
-  }
+    // Reset when less than 3 characters
+    if (query.length < 3) {
+      setSearchResults([]);
+      setSearchCursor(null);
+      setSearchHasMore(true);
+      setSearchOpen(false);
+      return;
+    }
 
     const timeout = setTimeout(() => {
       fetchSearchProducts(true);
@@ -189,7 +180,7 @@ const ShopPage = () => {
 
   const handleParentEnter = (
     category: Category,
-    event: React.MouseEvent<HTMLDivElement>
+    event: React.MouseEvent<HTMLDivElement>,
   ) => {
     if (childCloseTimeoutRef.current) {
       clearTimeout(childCloseTimeoutRef.current);
@@ -217,7 +208,7 @@ const ShopPage = () => {
 
   const handleChildEnter = (
     child: Category,
-    event: React.MouseEvent<HTMLDivElement>
+    event: React.MouseEvent<HTMLDivElement>,
   ) => {
     if (childCloseTimeoutRef.current) {
       clearTimeout(childCloseTimeoutRef.current);
@@ -243,18 +234,18 @@ const ShopPage = () => {
 
   // Mobile accordion handlers
   const toggleCategoryExpansion = (categoryId: number) => {
-    setExpandedCategories(prev =>
+    setExpandedCategories((prev) =>
       prev.includes(categoryId)
-        ? prev.filter(id => id !== categoryId)
-        : [...prev, categoryId]
+        ? prev.filter((id) => id !== categoryId)
+        : [...prev, categoryId],
     );
   };
 
   const toggleChildExpansion = (childId: number) => {
-    setExpandedChildren(prev =>
+    setExpandedChildren((prev) =>
       prev.includes(childId)
-        ? prev.filter(id => id !== childId)
-        : [...prev, childId]
+        ? prev.filter((id) => id !== childId)
+        : [...prev, childId],
     );
   };
 
@@ -265,11 +256,10 @@ const ShopPage = () => {
     fetchProducts(true, category.id, subCategoryId);
   };
 
-
   const highlightText = (text: string, query: string) => {
     if (!query) return text;
 
-    const regex = new RegExp(`(${query})`, 'ig');
+    const regex = new RegExp(`(${query})`, "ig");
     return text.split(regex).map((part, i) =>
       part.toLowerCase() === query.toLowerCase() ? (
         <strong key={i} className="text-black">
@@ -277,34 +267,25 @@ const ShopPage = () => {
         </strong>
       ) : (
         part
-      )
+      ),
     );
   };
-
-
-
 
   useEffect(() => {
     const handleScroll = () => {
       if (
         window.innerHeight + window.scrollY >=
-        document.body.offsetHeight - 300 &&
+          document.body.offsetHeight - 300 &&
         hasMore &&
         !loading
       ) {
-        fetchProducts(
-          false,
-          selectedCategoryId,
-          selectedSubCategoryId
-        );
+        fetchProducts(false, selectedCategoryId, selectedSubCategoryId);
       }
     };
 
-    window.addEventListener('scroll', handleScroll);
-    return () => window.removeEventListener('scroll', handleScroll);
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
   }, [hasMore, loading, lastId, selectedCategoryId, selectedSubCategoryId]);
-
-
 
   useEffect(() => {
     const handleClickOutside = (e: MouseEvent) => {
@@ -316,11 +297,9 @@ const ShopPage = () => {
       }
     };
 
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -369,7 +348,6 @@ const ShopPage = () => {
         <section className="bg-white border-b">
           <div className="container mx-auto px-4 py-4">
             <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
-
               {/* Mobile Category Button */}
               <div className="md:hidden">
                 <button
@@ -414,7 +392,6 @@ const ShopPage = () => {
                           onMouseEnter={(e) => handleParentEnter(category, e)}
                           onMouseLeave={handleParentLeave}
                           onClick={() => {
-
                             setSelectedCategoryId(category.id);
                             setSelectedSubCategoryId(undefined);
                             setDropdownOpen(false);
@@ -432,7 +409,8 @@ const ShopPage = () => {
                             </span>
                           </div>
 
-                          {(category.children.length > 0 || category.sub_categories.length > 0) && (
+                          {(category.children.length > 0 ||
+                            category.sub_categories.length > 0) && (
                             <span className="text-gray-400">›</span>
                           )}
                         </div>
@@ -458,11 +436,13 @@ const ShopPage = () => {
                             className="flex items-center justify-between px-4 py-2 hover:bg-gray-100 cursor-pointer"
                             onMouseEnter={(e) => handleChildEnter(child, e)}
                             onClick={() => {
-
-                              setSelectedCategoryId(activeParent?.id);
-                              setSelectedSubCategoryId(child.id);
+                              // setSelectedCategoryId(activeParent?.id);
+                              // setSelectedSubCategoryId(child.id);
+                              setSelectedCategoryId(child.id);
+                              setSelectedSubCategoryId(undefined);
                               setDropdownOpen(false);
-                              fetchProducts(true, activeParent?.id, child.id);
+                              // fetchProducts(true, activeParent?.id, child.id);
+                              fetchProducts(true, child.id);
                             }}
                           >
                             <div className="flex items-center gap-3">
@@ -505,11 +485,14 @@ const ShopPage = () => {
                                 key={subCategory.id}
                                 className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
                                 onClick={() => {
-
                                   setSelectedCategoryId(activeParent?.id);
                                   setSelectedSubCategoryId(subCategory.id);
                                   setDropdownOpen(false);
-                                  fetchProducts(true, activeParent?.id, subCategory.id);
+                                  fetchProducts(
+                                    true,
+                                    activeParent?.id,
+                                    subCategory.id,
+                                  );
                                 }}
                               >
                                 <div className="w-16 h-16 rounded-md overflow-hidden mb-2 bg-gray-100">
@@ -546,11 +529,19 @@ const ShopPage = () => {
                               key={subCategory.id}
                               className="flex flex-col items-center cursor-pointer hover:opacity-80 transition-opacity"
                               onClick={() => {
+                                // setSelectedCategoryId(activeParent?.id);
+                                // setSelectedSubCategoryId(subCategory.id);
+                                // setDropdownOpen(false);
+                                // fetchProducts(true, activeParent?.id, subCategory.id);
 
-                                setSelectedCategoryId(activeParent?.id);
+                                setSelectedCategoryId(activeChild?.id);
                                 setSelectedSubCategoryId(subCategory.id);
                                 setDropdownOpen(false);
-                                fetchProducts(true, activeParent?.id, subCategory.id);
+                                fetchProducts(
+                                  true,
+                                  activeChild?.id,
+                                  subCategory.id,
+                                );
                               }}
                             >
                               <div className="w-16 h-16 rounded-md overflow-hidden mb-2 bg-gray-100">
@@ -594,7 +585,8 @@ const ShopPage = () => {
                     onScroll={(e) => {
                       const el = e.currentTarget;
                       if (
-                        el.scrollTop + el.clientHeight >= el.scrollHeight - 50 &&
+                        el.scrollTop + el.clientHeight >=
+                          el.scrollHeight - 50 &&
                         searchHasMore &&
                         !searchLoading
                       ) {
@@ -602,7 +594,7 @@ const ShopPage = () => {
                       }
                     }}
                   >
-                    {searchResults.map(product => (
+                    {searchResults.map((product) => (
                       <div
                         key={product.id}
                         className="flex gap-3 px-4 py-3 hover:bg-gray-100 cursor-pointer"
@@ -636,23 +628,23 @@ const ShopPage = () => {
                   </div>
                 )}
               </div>
-
             </div>
           </div>
         </section>
 
         {/* Mobile Category Accordion Menu */}
         {mobileMenuOpen && (
-          <div className="md:hidden fixed inset-0 z-50 bg-black/50" onClick={() => setMobileMenuOpen(false)}>
+          <div
+            className="md:hidden fixed inset-0 z-50 bg-black/50"
+            onClick={() => setMobileMenuOpen(false)}
+          >
             <div
               className="absolute left-0 top-0 h-full w-80 bg-white overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
               <div className="p-4 border-b flex justify-between items-center">
                 <h3 className="font-semibold text-lg">Categories</h3>
-                <button onClick={() => setMobileMenuOpen(false)}>
-                  ✕
-                </button>
+                <button onClick={() => setMobileMenuOpen(false)}>✕</button>
               </div>
 
               <div className="py-2">
@@ -673,7 +665,8 @@ const ShopPage = () => {
                           {category.name}
                         </span>
                       </div>
-                      {(category.children.length > 0 || category.sub_categories.length > 0) && (
+                      {(category.children.length > 0 ||
+                        category.sub_categories.length > 0) && (
                         <button
                           onClick={(e) => {
                             e.stopPropagation();
@@ -681,10 +674,11 @@ const ShopPage = () => {
                           }}
                           className="p-1"
                         >
-                          {expandedCategories.includes(category.id) ?
-                            <ChevronDown className="w-4 h-4" /> :
+                          {expandedCategories.includes(category.id) ? (
+                            <ChevronDown className="w-4 h-4" />
+                          ) : (
                             <ChevronRight className="w-4 h-4" />
-                          }
+                          )}
                         </button>
                       )}
                     </div>
@@ -698,7 +692,9 @@ const ShopPage = () => {
                             <div
                               key={subCategory.id}
                               className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-100"
-                              onClick={() => handleCategoryClick(category, subCategory.id)}
+                              onClick={() =>
+                                handleCategoryClick(category, subCategory.id)
+                              }
                             >
                               <img
                                 src={`${MEDIA_BASE_URL}${subCategory.image_path}`}
@@ -718,11 +714,20 @@ const ShopPage = () => {
                       category.children.length > 0 && (
                         <div className="bg-gray-50">
                           {category.children.map((child) => (
-                            <div key={child.id} className="border-b border-gray-200">
+                            <div
+                              key={child.id}
+                              className="border-b border-gray-200"
+                            >
                               {/* Child Category Item */}
                               <div
                                 className="flex items-center justify-between px-8 py-3 cursor-pointer"
-                                onClick={() => handleCategoryClick(category, child.id)}
+                                onClick={() => {
+                                  // handleCategoryClick(category, child.id)
+                                  setSelectedCategoryId(child.id);
+                                  setSelectedSubCategoryId(undefined);
+                                  setMobileMenuOpen(false);
+                                  fetchProducts(true, child.id);
+                                }}
                               >
                                 <div className="flex items-center gap-3">
                                   <img
@@ -742,10 +747,11 @@ const ShopPage = () => {
                                     }}
                                     className="p-1"
                                   >
-                                    {expandedChildren.includes(child.id) ?
-                                      <ChevronDown className="w-4 h-4" /> :
+                                    {expandedChildren.includes(child.id) ? (
+                                      <ChevronDown className="w-4 h-4" />
+                                    ) : (
                                       <ChevronRight className="w-4 h-4" />
-                                    }
+                                    )}
                                   </button>
                                 )}
                               </div>
@@ -758,7 +764,19 @@ const ShopPage = () => {
                                       <div
                                         key={subCategory.id}
                                         className="flex items-center gap-3 px-4 py-2 cursor-pointer hover:bg-gray-200"
-                                        onClick={() => handleCategoryClick(category, subCategory.id)}
+                                        onClick={() => {
+                                          // handleCategoryClick(category, subCategory.id)
+                                          setSelectedCategoryId(child.id);
+                                          setSelectedSubCategoryId(
+                                            subCategory.id,
+                                          );
+                                          setMobileMenuOpen(false);
+                                          fetchProducts(
+                                            true,
+                                            child.id,
+                                            subCategory.id,
+                                          );
+                                        }}
                                       >
                                         <img
                                           src={`${MEDIA_BASE_URL}${subCategory.image_path}`}
@@ -783,39 +801,35 @@ const ShopPage = () => {
           </div>
         )}
 
-
-
         <section className="container mx-auto px-4 py-10">
           {products.length === 0 && !loading && (
-            <p className="text-center text-gray-500">
-              No products found
-            </p>
+            <p className="text-center text-gray-500">No products found</p>
           )}
 
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-            {products.map(product => (
+            {products.map((product) => (
               <div
                 key={product.id}
-                className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer"
+                className="border rounded-lg overflow-hidden hover:shadow-lg transition-shadow bg-white cursor-pointer flex flex-col"
                 onClick={() => navigate(`/product/${product.id}`)}
               >
                 {/* Image */}
-                <div className="aspect-square bg-gray-100">
+                <div className="relative w-full pt-[100%] bg-gray-100">
                   <img
                     src={`${MEDIA_BASE_URL}${product.primary_image}`}
                     alt={product.name}
-                    className="w-full h-full object-cover"
+                    className="absolute top-0 left-0 w-full h-full object-cover"
                   />
                 </div>
 
                 {/* Content */}
-                <div className="p-4 flex flex-col gap-2">
-                  <h3 className="text-sm font-medium text-gray-800 line-clamp-2">
+                <div className="p-4 flex flex-col flex-grow">
+                  <h3 className="text-sm font-medium text-gray-800 line-clamp-2 min-h-[2.5rem]">
                     {product.name}
                   </h3>
 
                   {/* Price */}
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-2 mt-2">
                     {product.discount_price ? (
                       <>
                         <span className="text-primary font-semibold">
@@ -832,22 +846,26 @@ const ShopPage = () => {
                     )}
                   </div>
 
+                  {/* Spacer to push button down */}
+                  <div className="flex-grow"></div>
+
                   {/* Add to cart */}
                   <button
-                    className="mt-auto flex items-center justify-center gap-2 bg-primary text-white py-2 rounded-md hover:opacity-90 transition"
+                    className="mt-4 flex items-center justify-center gap-2 bg-primary text-white py-2 rounded-md hover:opacity-90 transition"
                     onClick={(e) => {
                       e.stopPropagation(); // prevent opening product details
                       addToCart({
                         product_id: product.id,
                         unit_price: product.discount_price ?? product.price,
-                        quantity: 1
+                        quantity: 1,
+                        name: product.name,
+                        primary_image: product.primary_image,
                       });
                     }}
                   >
                     <ShoppingCart size={16} />
-                    Add to Cart
+                    Add to Cart 
                   </button>
-
                 </div>
               </div>
             ))}
@@ -859,8 +877,6 @@ const ShopPage = () => {
             </p>
           )}
         </section>
-
-
       </main>
 
       <Footer />

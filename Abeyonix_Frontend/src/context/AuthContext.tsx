@@ -13,6 +13,7 @@ interface User {
 interface AuthContextType {
     user: User | null;
     token: string | null;
+    loading: boolean;
     loginUser: (data: { user: User; token: string }) => void;
     logout: () => void;
     updateUserContext: (payload: Partial<User>) => void;
@@ -24,6 +25,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const navigate = useNavigate();
     const [user, setUser] = useState<User | null>(null);
     const [token, setToken] = useState<string | null>(null);
+    const [loading, setLoading] = useState(true);
 
     useEffect(() => {
         const stored = localStorage.getItem('auth');
@@ -32,6 +34,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             setUser(parsed.user);
             setToken(parsed.token);
         }
+
+         setLoading(false);
     }, []);
 
     const loginUser = ({ user, token }: { user: User; token: string }) => {
@@ -78,7 +82,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     return (
         <AuthContext.Provider
-            value={{ user, token, loginUser, logout, updateUserContext }}
+            value={{ user, token, loginUser, logout, updateUserContext, loading  }}
         >
             {children}
         </AuthContext.Provider>

@@ -17,7 +17,7 @@ import { CartProvider } from "./context/CartContext";
 import CheckoutPage from "./pages/CheckoutPage";
 import PaymentStatus from "./pages/PaymentStatus";
 import ComingSoonPage from "./pages/ComingSoonPage";
-// import OrderSuccessPage from "./pages/OrderSuccessPage";
+import OrderSuccessPage from "./pages/OrderSuccessPage";
 
 import {
   PrivacyPolicy,
@@ -29,10 +29,17 @@ import {
   ContactUs,
 } from "./pages/Policy";
 
-// import AdminRoute from "@/components/AdminRoute";
-// import AdminLayout from "@/admin/AdminLayout";
-// import Dashboard from "@/admin/pages/Dashboard";
-// import AdminCategory from "@/admin/pages/AdminCategory";
+import AdminRoute from "@/components/AdminRoute";
+import AdminLayout from "@/admin/AdminLayout";
+import Dashboard from "@/admin/pages/Dashboard";
+import AdminCategory from "@/admin/pages/AdminCategory";
+import AdminSubCategory from "./admin/pages/AdminSubCategory";
+import AdminAttribute from "./admin/pages/AdminAttribute";
+import AdminCategoryAttribute from "./admin/pages/AdminCategoryAttribute";
+import AdminProduct from "./admin/pages/AdminProduct";
+import AdminOrders from "./admin/pages/AdminOrders";
+import AdminServices from "./admin/pages/AdminServices";
+import AdminInquiryPage from "@/admin/pages/AdminInquiryPage";
 
 const queryClient = new QueryClient();
 
@@ -56,10 +63,10 @@ const App = () => (
               <Route path="/checkout" element={<CheckoutPage />} />
               <Route path="/payment-status" element={<PaymentStatus />} />
               <Route path="/comming-soon" element={<ComingSoonPage />} />
-              {/* <Route
+              <Route
                 path="/order-success/:orderId"
                 element={<OrderSuccessPage />}
-              /> */}
+              />
 
               {/* POLICY */}
 
@@ -73,7 +80,7 @@ const App = () => (
 
               {/* ADMIN ROUTES */}
 
-              {/* <Route
+              <Route
                 path="/admin"
                 element={
                   <AdminRoute>
@@ -83,7 +90,14 @@ const App = () => (
               >
                 <Route index element={<Dashboard />} />
                 <Route path="categories" element={<AdminCategory />} />
-              </Route> */}
+                <Route path="sub-categories" element={<AdminSubCategory />} />
+                <Route path="attributes" element={<AdminAttribute />} />
+                <Route path="category-attributes" element={<AdminCategoryAttribute />} />
+                <Route path="products" element={<AdminProduct />} />
+                <Route path="orders" element={<AdminOrders />} />
+                <Route path="services" element={<AdminServices />} />
+                <Route path="inventory" element={<AdminInquiryPage />} />
+              </Route>
 
               {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
               <Route path="*" element={<NotFound />} />

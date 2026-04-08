@@ -18,7 +18,7 @@ export interface ProductInventory {
   id: number;
   product_id: number;
   quantity: number;
-  reserved?: number;
+  low_quantity_alert_at?: number;
 }
 
 export interface ProductAttribute {
@@ -52,4 +52,41 @@ export interface ProductDetailResponse {
   inventory: ProductInventory | null;
   attributes: ProductAttribute[];
   media: ProductMedia[];
+}
+
+export interface PaginatedProductResponse {
+  total: number;
+  page: number;
+  page_size: number;
+  items: ProductDetailResponse[];
+}
+
+
+
+export interface ProductPayload {
+  name: string;
+  category_id: number;
+  sub_category_id?: number;
+
+  brand?: string;
+  short_description?: string;
+  long_description?: string;
+
+  price: number;
+  discount_price?: number;
+
+  quantity: number;
+  low_quantity_alert_at: number;
+
+  attributes: {
+    attribute_id: number;
+    value: string;
+  }[];
+
+  images: File[];
+  primary_image_index?: number;
+
+  // update only
+  sku?: string;
+  existing_media_ids?: number[];
 }

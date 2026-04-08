@@ -40,6 +40,57 @@ export interface CheckoutPageResponse {
 
 // ----------------------------------------
 
+export interface PlaceOrderRequest {
+  user_id: number
+  address_id: number
+
+  // Buy Now flow
+  product_id?: number
+  quantity?: number
+}
+
+export interface PlaceOrderResponse {
+  order_id: number
+  order_number: string
+  total_amount: number
+  order_status: string
+}
+
+// ----------------------------------------
+
+export interface UserOrderItemInfo {
+  product_id: number
+  product_name: string
+  sku: string
+  quantity: number
+  unit_price: number
+  total_price: number
+  primary_image?: string
+}
+
+export interface OrderTrackingInfo {
+  status:string
+  description:string
+  location:string
+  updated_at:string
+}
+
+export interface UserOrderWithItems {
+  order_id: number
+  order_number: string
+  order_status: string
+  payment_status: string
+  total_amount: number
+  created_at: string
+  items: UserOrderItemInfo[]
+  tracking:OrderTrackingInfo[]
+}
+
+export interface UserOrderListResponse {
+  total_orders: number
+  orders: UserOrderWithItems[]
+}
+// ----------------------------------------
 
 export interface InitiatePaymentRequest {
   user_id: number;

@@ -1,109 +1,126 @@
-import { useState, useEffect } from 'react';
-import { Check } from 'lucide-react';
+import { useState, useEffect } from "react";
+import { Check } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+
+import SpeedyBee from "@/assets/banners/SpeedyBee_banner.png";
+import slider2 from "@/assets/banners/Abeyonix_drone.png";
+import slider3 from "@/assets/banners/Abeyonix_3D_printing-1.png";
+import slider4 from "@/assets/banners/Abeyonix_all.png";
+import slider5 from "@/assets/banners/Abeyonix_3D_printing-2.png";
 
 const HeroSection = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
 
   const features = [
-    'Certified Drone Pilots',
-    '4K Aerial Footage',
-    'Advanced Flight Technology',
+    "Advanced drones",
+    "robotics",
+    "IoT solutions",
   ];
 
-  const sliderImages = [
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YT84U2V-Copy-300x300.jpg',
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-NHZH594-Copy-300x300.jpg',
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YB9AP5B-Copy-300x300.jpg',
-  ];
+  const bgImages = [SpeedyBee, slider2, slider3, slider4, slider5];
 
   useEffect(() => {
     const interval = setInterval(() => {
-      setActiveSlide((prev) =>
-        prev === sliderImages.length - 1 ? 0 : prev + 1
-      );
-    }, 3000);
+      setActiveSlide((prev) => (prev + 1) % bgImages.length);
+    }, 6000); // Change image every 5 seconds
 
     return () => clearInterval(interval);
-  }, [sliderImages.length]);
+  }, [bgImages.length]);
 
   return (
     <>
       {/* Custom Animation Styles */}
       <style>{`
-        @keyframes drone-fly {
-          0% {
-            top: 10%;
-            right: -10%;
-            opacity: 0;
-            transform: rotate(0deg);
-          }
-          10% {
-            opacity: 1;
-          }
-          35% {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          }
-          50% {
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-          }
-          75% {
-            left: -10%;
-            bottom: -10%;
-            transform: rotate(-15deg);
-          }
-          100% {
-            left: -15%;
-            bottom: -15%;
-            opacity: 0;
-          }
-        }
-        .animate-drone {
-          animation: drone-fly 10s linear infinite;
-        }
+  @keyframes drone-fly {
+    0% {
+      transform: translate(105vw, 8vh);
+      opacity: 0;
+    }
+    8% {
+      transform: translate(90vw, 12vh);
+      opacity: 1;
+    }
+    38% {
+      transform: translate(44vw, 38vh);
+      opacity: 1;
+    }
+    58% {
+      transform: translate(44vw, 38vh);
+      opacity: 1;
+    }
+    92% {
+      transform: translate(-8vw, 88vh);
+      opacity: 1;
+    }
+    100% {
+      transform: translate(-15vw, 100vh);
+      opacity: 0;
+    }
+  }
 
-        @media (max-width: 480px) {
-          .animate-drone {
-            animation-duration: 14s;
-          }
-        }
-      `}</style>
+  .animate-drone {
+    animation: drone-fly 10s cubic-bezier(0.45, 0, 0.55, 1) infinite;
+  }
+
+  @media (max-width: 480px) {
+    .animate-drone {
+      animation-duration: 13s;
+    }
+  }
+`}</style>
 
       <section className="relative min-h-screen flex items-start md:items-center pt-20 overflow-hidden">
-        {/* Background */}
-        <div
-          className="absolute inset-0 bg-cover bg-center bg-no-repeat z-0"
-          style={{
-            backgroundImage:
-              'url(https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-S67VE57.jpg)',
-          }}
-        />
+        {/* Background Slider - FIXED & SMOOTH */}
+        <div className="absolute inset-0 z-0 overflow-hidden">
+          {/*
+            All slides sit in a single flex strip.
+            We shift the strip left by (activeSlide * 100%) to reveal the active slide.
+          */}
+          <div
+            className="flex h-full"
+            style={{
+              width: `${bgImages.length * 100}%`,
+              transform: `translateX(-${(activeSlide * 100) / bgImages.length}%)`,
+              transition: "transform 900ms cubic-bezier(0.77, 0, 0.175, 1)",
+            }}
+          >
+            {bgImages.map((img, index) => (
+              <div
+                key={index}
+                className="h-full bg-cover bg-center bg-no-repeat"
+                style={{
+                  width: `${100 / bgImages.length}%`,
+                  backgroundImage: `url(${img})`,
+                }}
+              />
+            ))}
+          </div>
 
-        {/* Overlay */}
-        <div className="absolute inset-0 bg-black/60 z-20" />
+          {/* Dark Overlay */}
+          <div className="absolute inset-0 bg-black/5 z-10" />
+        </div>
 
         {/* Flying Drone */}
-        <img
-          src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png"
-          alt="Flying Drone"
-          className="absolute w-32 sm:w-40 md:w-64 opacity-70 md:opacity-100 z-25 pointer-events-none animate-drone"
-        />
+       <img
+  src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png"
+  alt="Flying Drone"
+  className="absolute w-32 sm:w-40 md:w-56 pointer-events-none animate-drone"
+  style={{ top: 0, left: 0, zIndex: 25 }}
+/>
 
-        {/* Content */}
+        {/* Overlay */}
+        <div className="absolute inset-0 bg-black/50 z-20" />
+
+        {/* Main Content */}
         <div className="container mx-auto px-4 lg:px-8 relative z-30">
           <div className="grid lg:grid-cols-2 gap-12 items-center min-h-[calc(90vh-6rem)]">
-
             {/* LEFT CONTENT */}
-            <div className="text-primary-foreground animate-fade-in text-center md:text-left">
+            <div className="text-primary-foreground text-center md:text-left">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-heading leading-tight mb-6 md:mb-8 italic">
-                Cinematic Drone
+                Build. Customize. 
                 <br />
-                Aerial Visual
+                Fly. Innovate.
               </h1>
 
               <div className="flex flex-col sm:flex-row flex-wrap gap-4 sm:gap-6 mt-6 md:mt-8 justify-center md:justify-start">
@@ -121,26 +138,27 @@ const HeroSection = () => {
                   onClick={() => navigate("/services")}
                   className="btn-primary px-7 w-full sm:w-auto"
                 >
-                  Explore More
+                  Start Custom Build
                 </button>
 
                 <button
                   onClick={() => navigate("/shop")}
                   className="px-7 py-3 w-full sm:w-auto rounded-full border border-white/30
-    bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition"
+                             bg-white/10 backdrop-blur-md text-white hover:bg-white/20 transition"
                 >
-                  Shop Now
+                  Explore Products
                 </button>
               </div>
             </div>
 
-            {/* RIGHT CONTENT */}
-            <div
-              className="flex flex-col items-center lg:items-end mt-12 md:mt-24 animate-slide-in"
-              style={{ animationDelay: '0.3s' }}
-            >
-              {/* Main Slider */}
-              <div className="relative hidden sm:block w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 overflow-hidden rounded-3xl mb-6">
+            {/* RIGHT SIDE - You can re-enable the product slider later if needed */}
+          </div>
+          <div
+            className="flex flex-col items-center lg:items-end mt-12 md:mt-24 animate-slide-in"
+            style={{ animationDelay: "0.3s" }}
+          >
+            {/* Main Slider */}
+            {/* <div className="relative hidden sm:block w-64 h-64 sm:w-72 sm:h-72 md:w-80 md:h-80 overflow-hidden rounded-3xl mb-6">
                 <div
                   className="flex h-full transition-transform duration-700 ease-in-out"
                   style={{
@@ -156,18 +174,19 @@ const HeroSection = () => {
                     />
                   ))}
                 </div>
-              </div>
+              </div> */}
 
-              {/* Thumbnails */}
-              <div className="flex gap-3 sm:gap-4 mb-4">
+            {/* Thumbnails */}
+            {/* <div className="flex gap-3 sm:gap-4 mb-4">
                 {sliderImages.map((img, index) => (
                   <div
                     key={index}
                     onClick={() => setActiveSlide(index)}
-                    className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${activeSlide === index
-                      ? 'ring-2 ring-primary scale-105'
-                      : 'opacity-90 hover:opacity-100'
-                      }`}
+                    className={`w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 rounded-2xl overflow-hidden cursor-pointer transition-all duration-300 ${
+                      activeSlide === index
+                        ? "ring-2 ring-primary scale-105"
+                        : "opacity-90 hover:opacity-100"
+                    }`}
                   >
                     <img
                       src={img}
@@ -176,32 +195,32 @@ const HeroSection = () => {
                     />
                   </div>
                 ))}
-              </div>
+              </div> */}
 
-              {/* Dots */}
-              <div className="flex gap-2 mb-6">
+            {/* Dots */}
+            {/* <div className="flex gap-2 mb-6">
                 {sliderImages.map((_, index) => (
                   <button
                     key={index}
                     onClick={() => setActiveSlide(index)}
-                    className={`h-2 rounded-full transition-all ${activeSlide === index
-                      ? 'bg-primary w-4'
-                      : 'bg-primary-foreground/50 w-2'
-                      }`}
+                    className={`h-2 rounded-full transition-all ${
+                      activeSlide === index
+                        ? "bg-primary w-4"
+                        : "bg-primary-foreground/50 w-2"
+                    }`}
                   />
                 ))}
-              </div>
+              </div> */}
 
-              {/* Description */}
-              <p className="text-primary-foreground/80 text-center lg:text-right max-w-xs mb-6 text-sm">
-                Experience breathtaking aerial cinematography powered by certified pilots
-                and cutting-edge drone technology.
-              </p>
+            {/* Description */}
+            {/* <p className="text-primary-foreground/80 text-center lg:text-right max-w-xs mb-6 text-sm">
+                Experience breathtaking aerial cinematography powered by
+                certified pilots and cutting-edge drone technology.
+              </p> */}
 
-              {/* <button className="btn-primary w-full sm:w-auto mb-10 sm:mb-0">
+            {/* <button className="btn-primary w-full sm:w-auto mb-10 sm:mb-0">
                 Discover More
               </button> */}
-            </div>
           </div>
         </div>
       </section>

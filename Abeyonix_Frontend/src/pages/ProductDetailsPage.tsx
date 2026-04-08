@@ -1,11 +1,11 @@
-import { useEffect, useState } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
-import Header from '@/components/Header';
-import Footer from '@/components/Footer';
-import { getProductById } from '@/api/product';
-import { ProductDetailResponse } from '@/types/product';
-import { useCart } from '@/context/CartContext';
-import { formatPrice } from '@/utils/formatPrice';
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { getProductById } from "@/api/product";
+import { ProductDetailResponse } from "@/types/product";
+import { useCart } from "@/context/CartContext";
+import { formatPrice } from "@/utils/formatPrice";
 
 const ProductDetailsPage = () => {
   const { id } = useParams<{ id: string }>();
@@ -13,8 +13,9 @@ const ProductDetailsPage = () => {
 
   const [product, setProduct] = useState<ProductDetailResponse | null>(null);
   const [activeImage, setActiveImage] = useState<string | null>(null);
-  const [activeTab, setActiveTab] =
-    useState<'description' | 'reviews'>('description');
+  const [activeTab, setActiveTab] = useState<"description" | "reviews">(
+    "description",
+  );
   const [loading, setLoading] = useState(true);
   const [quantity, setQuantity] = useState(1);
   const [adding, setAdding] = useState(false);
@@ -30,7 +31,7 @@ const ProductDetailsPage = () => {
       const data = await getProductById(Number(id));
       setProduct(data);
 
-      const primary = data.media.find(m => m.is_primary);
+      const primary = data.media.find((m) => m.is_primary);
       setActiveImage(primary?.url || data.media[0]?.url || null);
 
       setQuantity(1);
@@ -54,23 +55,31 @@ const ProductDetailsPage = () => {
   const inStock = stockQty > 0;
 
   const increaseQty = () =>
-    setQuantity(prev => (prev < stockQty ? prev + 1 : prev));
+    setQuantity((prev) => (prev < stockQty ? prev + 1 : prev));
 
-  const decreaseQty = () =>
-    setQuantity(prev => (prev > 1 ? prev - 1 : prev));
+  const decreaseQty = () => setQuantity((prev) => (prev > 1 ? prev - 1 : prev));
 
   const handleAddToCart = async () => {
     if (!inStock) return;
 
     try {
       setAdding(true);
+      // await addToCart({
+      //   product_id: product.id,
+      //   quantity,
+      //   unit_price:
+      //     product.pricing?.discount_price ?? product.pricing?.price ?? 0,
+      // });
       await addToCart({
         product_id: product.id,
         quantity,
         unit_price:
-          product.pricing?.discount_price ??
-          product.pricing?.price ??
-          0,
+          product.pricing?.discount_price ?? product.pricing?.price ?? 0,
+        name: product.name,
+        primary_image:
+          product.media.find((m) => m.is_primary)?.url ??
+          product.media[0]?.url ??
+          "",
       });
     } finally {
       setAdding(false);
@@ -96,14 +105,14 @@ const ProductDetailsPage = () => {
             <p className="text-white/90 text-sm tracking-[0.2em] uppercase mb-2">
               <span
                 className="cursor-pointer hover:opacity-80"
-                onClick={() => navigate('/')}
+                onClick={() => navigate("/")}
               >
                 Home
               </span>
               <span className="mx-2">/</span>
               <span
                 className="cursor-pointer hover:opacity-80"
-                onClick={() => navigate('/shop')}
+                onClick={() => navigate("/shop")}
               >
                 Shop
               </span>
@@ -142,14 +151,12 @@ const ProductDetailsPage = () => {
               </div>
 
               <div className="flex gap-3 justify-center">
-                {product.media.map(media => (
+                {product.media.map((media) => (
                   <button
                     key={media.id}
                     onClick={() => setActiveImage(media.url)}
                     className={`w-20 h-20 rounded-md overflow-hidden border ${
-                      activeImage === media.url
-                        ? 'ring-2 ring-primary'
-                        : ''
+                      activeImage === media.url ? "ring-2 ring-primary" : ""
                     }`}
                   >
                     <img
@@ -164,89 +171,93 @@ const ProductDetailsPage = () => {
 
             {/* Info */}
             <div className="flex flex-col gap-4">
-          <h1 className="text-2xl font-semibold">{product.name}</h1>
+              <h1 className="text-2xl font-semibold">{product.name}</h1>
 
-          <p className={`text-sm ${inStock ? 'text-green-600' : 'text-red-500'}`}>
-            {inStock ? `In stock (${stockQty})` : 'Out of stock'}
-          </p>
-
-          {/* Price */}
-          <div className="text-xl font-semibold">
-            {product.pricing?.discount_price ? (
-              <>
-                <span className="text-primary">
-                  ₹{formatPrice(product.pricing.discount_price)}
-                </span>
-                <span className="ml-2 text-gray-400 line-through text-base">
-                  ₹{formatPrice(product.pricing.price)}
-                </span>
-              </>
-            ) : (
-              <span>₹{formatPrice(product.pricing?.price)}</span>
-            )}
-          </div>
-
-          <p className="text-gray-600">{product.short_description}</p>
-
-          {/* Quantity Selector */}
-          <div className="flex items-center gap-4 mt-2">
-            <span className="text-sm font-medium">Quantity:</span>
-
-            <div className="flex items-center border rounded-md overflow-hidden">
-              <button
-                onClick={decreaseQty}
-                disabled={quantity === 1}
-                className="px-3 py-1 text-lg disabled:opacity-40"
+              <p
+                className={`text-sm ${inStock ? "text-green-600" : "text-red-500"}`}
               >
-                −
-              </button>
+                {inStock ? `In stock (${stockQty})` : "Out of stock"}
+              </p>
 
-              <span className="px-4 min-w-[40px] text-center">
-                {quantity}
-              </span>
+              {/* Price */}
+              <div className="text-xl font-semibold">
+                {product.pricing?.discount_price ? (
+                  <>
+                    <span className="text-primary">
+                      ₹{formatPrice(product.pricing.discount_price)}
+                    </span>
+                    <span className="ml-2 text-gray-400 line-through text-base">
+                      ₹{formatPrice(product.pricing.price)}
+                    </span>
+                  </>
+                ) : (
+                  <span>₹{formatPrice(product.pricing?.price)}</span>
+                )}
+              </div>
 
-              <button
-                onClick={increaseQty}
-                disabled={quantity >= stockQty}
-                className="px-3 py-1 text-lg disabled:opacity-40"
-              >
-                +
-              </button>
+              <p className="text-gray-600">{product.short_description}</p>
+
+              {/* Quantity Selector */}
+              <div className="flex items-center gap-4 mt-2">
+                <span className="text-sm font-medium">Quantity:</span>
+
+                <div className="flex items-center border rounded-md overflow-hidden">
+                  <button
+                    onClick={decreaseQty}
+                    disabled={quantity === 1}
+                    className="px-3 py-1 text-lg disabled:opacity-40"
+                  >
+                    −
+                  </button>
+
+                  <span className="px-4 min-w-[40px] text-center">
+                    {quantity}
+                  </span>
+
+                  <button
+                    onClick={increaseQty}
+                    disabled={quantity >= stockQty}
+                    className="px-3 py-1 text-lg disabled:opacity-40"
+                  >
+                    +
+                  </button>
+                </div>
+              </div>
+
+              {/* Buttons */}
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={handleAddToCart}
+                  disabled={!inStock || adding}
+                  className="px-6 py-2 bg-primary text-white rounded disabled:opacity-50"
+                >
+                  {adding ? "Adding…" : "Add to Cart"}
+                </button>
+
+                <button
+                  disabled={!inStock}
+                  className="px-6 py-2 border border-primary text-primary rounded disabled:opacity-50"
+                  onClick={() =>
+                    navigate(`/checkout?product_id=${product.id}&quantity=1`)
+                  }
+                >
+                  Buy Now
+                </button>
+              </div>
             </div>
-          </div>
-
-          {/* Buttons */}
-          <div className="flex gap-4 mt-4">
-            <button
-              onClick={handleAddToCart}
-              disabled={!inStock || adding}
-              className="px-6 py-2 bg-primary text-white rounded disabled:opacity-50"
-            >
-              {adding ? 'Adding…' : 'Add to Cart'}
-            </button>
-
-            <button
-              disabled={!inStock}
-              className="px-6 py-2 border border-primary text-primary rounded disabled:opacity-50"
-              onClick={()=> navigate(`/checkout?product_id=${product.id}&quantity=1`)}
-            >
-              Buy Now
-            </button>
-          </div>
-        </div>
           </div>
 
           {/* Tabs */}
           <div className="mt-12">
             <div className="border-b flex gap-6">
-              {['description', 'reviews'].map(tab => (
+              {["description", "reviews"].map((tab) => (
                 <button
                   key={tab}
                   onClick={() => setActiveTab(tab as any)}
                   className={`pb-2 font-medium ${
                     activeTab === tab
-                      ? 'border-b-2 border-primary text-primary'
-                      : 'text-gray-500'
+                      ? "border-b-2 border-primary text-primary"
+                      : "text-gray-500"
                   }`}
                 >
                   {tab}
@@ -254,16 +265,43 @@ const ProductDetailsPage = () => {
               ))}
             </div>
 
-            {activeTab === 'description' && (
+            {activeTab === "description" && (
               <div className="mt-6">
-                <p>{product.long_description}</p>
+                {/* Long Description with proper text wrapping */}
+                <div className="prose max-w-none">
+                  <p className="whitespace-pre-wrap break-words text-gray-600">
+                    {product.long_description}
+                  </p>
+                </div>
+
+                {/* Specifications Section */}
+                {product.attributes && product.attributes.length > 0 && (
+                  <div className="mt-8">
+                    <h3 className="text-lg font-semibold mb-4">
+                      Specifications
+                    </h3>
+                    <div className="bg-gray-50 rounded-lg p-4">
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                        {product.attributes.map((attribute) => (
+                          <div key={attribute.attribute_id} className="flex">
+                            <span className="font-medium text-gray-700 mr-2">
+                              {attribute.attribute_name}:
+                            </span>
+                            <span className="text-gray-600">
+                              {attribute.value}
+                              {attribute.unit && ` ${attribute.unit}`}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
 
-            {activeTab === 'reviews' && (
-              <div className="mt-6 text-gray-500">
-                No reviews yet
-              </div>
+            {activeTab === "reviews" && (
+              <div className="mt-6 text-gray-500">No reviews yet</div>
             )}
           </div>
         </section>

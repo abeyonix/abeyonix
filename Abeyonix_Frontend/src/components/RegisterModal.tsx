@@ -1,10 +1,13 @@
 // src/components/RegisterModal.tsx
-import { X } from 'lucide-react';
-import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { toast } from 'sonner';
+import { X } from "lucide-react";
+import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
+import { toast } from "sonner";
 
-import { register, verifyRegistrationOtp } from '@/api/auth';
+import { register, verifyRegistrationOtp } from "@/api/auth";
+
+import { login } from "@/api/auth";
+import { useAuth } from "@/context/AuthContext";
 
 interface Props {
   open: boolean;
@@ -15,33 +18,35 @@ interface Props {
 const OTP_DURATION = 10 * 60; // 10 minutes (seconds)
 
 const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
-  const [step, setStep] = useState<'register' | 'otp'>('register');
+  const [step, setStep] = useState<"register" | "otp">("register");
+  const [errors, setErrors] = useState<any>({});
+  const { loginUser } = useAuth();
 
   const [form, setForm] = useState({
-    user_name: '',
-    email: '',
-    password: '',
-    first_name: '',
-    last_name: '',
-    phone: '',
+    user_name: "",
+    email: "",
+    password: "",
+    first_name: "",
+    last_name: "",
+    phone: "",
   });
 
-  const [otp, setOtp] = useState('');
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [secondsLeft, setSecondsLeft] = useState(OTP_DURATION);
 
   // ESC close
   useEffect(() => {
     const handleEsc = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose();
+      if (e.key === "Escape") onClose();
     };
-    if (open) window.addEventListener('keydown', handleEsc);
-    return () => window.removeEventListener('keydown', handleEsc);
+    if (open) window.addEventListener("keydown", handleEsc);
+    return () => window.removeEventListener("keydown", handleEsc);
   }, [open, onClose]);
 
   // OTP countdown
   useEffect(() => {
-    if (step !== 'otp') return;
+    if (step !== "otp") return;
 
     setSecondsLeft(OTP_DURATION);
     const interval = setInterval(() => {
@@ -51,7 +56,7 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
           return 0;
         }
         return prev - 1;
-      });
+      }); 
     }, 1000);
 
     return () => clearInterval(interval);
@@ -59,8 +64,41 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
 
   if (!open) return null;
 
+  const validateForm = () => {
+  const newErrors: any = {};
+
+  if (!form.user_name.trim()) newErrors.user_name = "Username is required";
+
+  if (!form.email.trim()) {
+    newErrors.email = "Email is required";
+  } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+    newErrors.email = "Invalid email format";
+  }
+
+  if (!form.password.trim()) {
+    newErrors.password = "Password is required";
+  } else if (form.password.length < 6) {
+    newErrors.password = "Minimum 6 characters required";
+  }
+
+  if (!form.first_name.trim()) newErrors.first_name = "First name is required";
+  if (!form.last_name.trim()) newErrors.last_name = "Last name is required";
+
+  if (!form.phone.trim()) {
+    newErrors.phone = "Phone is required";
+  } else if (!/^[6-9]\d{9}$/.test(form.phone)) {
+    newErrors.phone = "Invalid phone number";
+  }
+
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
+
+
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    if (!validateForm()) return;
     setLoading(true);
 
     try {
@@ -73,34 +111,53 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
         phone: form.phone || undefined,
       });
 
-      toast.success('OTP sent to your email');
-      setStep('otp');
+      toast.success("OTP sent to your email");
+      setStep("otp");
     } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Registration failed');
+      toast.error(err?.response?.data?.detail || "Registration failed");
     } finally {
       setLoading(false);
     }
   };
 
   const handleVerifyOtp = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setLoading(true);
+  e.preventDefault();
+  setLoading(true);
 
-    try {
-      await verifyRegistrationOtp({
-        email: form.email,
-        otp,
-      });
+  try {
+    await verifyRegistrationOtp({
+      email: form.email,
+      otp,
+    });
 
-      toast.success('Account verified successfully 🎉');
-      onClose();
-      onBackToLogin();
-    } catch (err: any) {
-      toast.error(err?.response?.data?.detail || 'Invalid OTP');
-    } finally {
-      setLoading(false);
-    }
-  };
+    toast.success("Account verified successfully 🎉");
+
+    // ✅ AUTO LOGIN AFTER OTP
+    const res = await login({
+      email: form.email,
+      password: form.password,
+    });
+
+    loginUser({
+      token: res.access_token,
+      user: {
+        user_id: res.user_id,
+        user_identity_id: res.user_identity_id,
+        user_name: res.user_name,
+        full_name: res.full_name,
+        email: res.email,
+        role: res.role,
+      },
+    });
+
+    onClose(); // close modal
+
+  } catch (err: any) {
+    toast.error(err?.response?.data?.detail || "Invalid OTP");
+  } finally {
+    setLoading(false);
+  }
+};
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;
@@ -119,15 +176,18 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">
-            {step === 'register' ? 'Create Account' : 'Verify OTP'}
+            {step === "register" ? "Create Account" : "Verify OTP"}
           </h2>
-          <button onClick={onClose} className="text-gray-400 hover:text-gray-600">
+          <button
+            onClick={onClose}
+            className="text-gray-400 hover:text-gray-600"
+          >
             <X size={20} />
           </button>
         </div>
 
         {/* REGISTER FORM */}
-        {step === 'register' && (
+        {step === "register" && (
           <form className="space-y-3" onSubmit={handleRegister}>
             <input
               className="w-full border px-3 py-2 rounded"
@@ -157,35 +217,40 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
                 className="border px-3 py-2 rounded"
                 placeholder="First name"
                 value={form.first_name}
-                onChange={(e) => setForm({ ...form, first_name: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, first_name: e.target.value })
+                }
                 required
               />
               <input
                 className="border px-3 py-2 rounded"
                 placeholder="Last name"
                 value={form.last_name}
-                onChange={(e) => setForm({ ...form, last_name: e.target.value })}
+                onChange={(e) =>
+                  setForm({ ...form, last_name: e.target.value })
+                }
                 required
               />
             </div>
             <input
               className="w-full border px-3 py-2 rounded"
-              placeholder="Phone (optional)"
+              placeholder="Phone"
               value={form.phone}
               onChange={(e) => setForm({ ...form, phone: e.target.value })}
+              required
             />
 
             <button
               disabled={loading}
               className="w-full bg-primary text-white py-2 rounded"
             >
-              {loading ? 'Registering...' : 'Register'}
+              {loading ? "Registering..." : "Register"}
             </button>
           </form>
         )}
 
         {/* OTP VERIFICATION */}
-        {step === 'otp' && (
+        {step === "otp" && (
           <form className="space-y-4" onSubmit={handleVerifyOtp}>
             <p className="text-sm text-gray-600">
               Enter OTP sent to <strong>{form.email}</strong>
@@ -201,12 +266,12 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
 
             {secondsLeft > 0 ? (
               <p className="text-sm text-gray-500 text-center">
-                OTP expires in {minutes}:{seconds.toString().padStart(2, '0')}
+                OTP expires in {minutes}:{seconds.toString().padStart(2, "0")}
               </p>
             ) : (
               <button
                 type="button"
-                onClick={() => setStep('register')}
+                onClick={() => setStep("register")}
                 className="text-primary text-sm underline w-full"
               >
                 Resend OTP
@@ -217,14 +282,14 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
               disabled={loading}
               className="w-full bg-primary text-white py-2 rounded"
             >
-              {loading ? 'Verifying...' : 'Verify OTP'}
+              {loading ? "Verifying..." : "Verify OTP"}
             </button>
           </form>
         )}
 
         {/* Footer */}
         <p className="text-sm text-center text-gray-500 mt-4">
-          Already have an account?{' '}
+          Already have an account?{" "}
           <button
             onClick={onBackToLogin}
             className="text-primary hover:underline"
@@ -234,7 +299,7 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
         </p>
       </div>
     </div>,
-    document.body
+    document.body,
   );
 };
 

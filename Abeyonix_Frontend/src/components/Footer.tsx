@@ -1,26 +1,47 @@
-import { Phone, Mail, MapPin } from 'lucide-react';
+import { Phone, Mail, MapPin } from "lucide-react";
+import { useAuth } from "@/context/AuthContext";
+import footerLogo from "@/assets/abeyonix_footer_logo.png";
+import logo from "@/assets/Abeyonix_LOGO.png"
 
 const Footer = () => {
-  const quickLinks = ['Home', 'About', 'Services', 'Contact'];
-  const serviceLinks = ['Home', 'About', 'Services', 'Contact'];
+  const { user } = useAuth();
+
+  const handleProtectedRoute = (path: string) => {
+    if (!user) {
+      return "#"; // or "/login"
+    }
+    return path;
+  };
+
+  const quickLinks = [
+    { name: "Home", path: "/" },
+    { name: "About", path: "/about" },
+    { name: "Shop", path: "/shop" },
+    { name: "Contact", path: "/contact" },
+  ];
+
+  const serviceLinks = [
+    { name: "Services", path: "/services" },
+    { name: "Cart", path: "/cart" },
+    { name: "Checkout", path: "/checkout" },
+    { name: "Account", path: "/account" },
+  ];
 
   const galleryImages = [
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YT84U2V-Copy-300x300.jpg',
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-NHZH594-Copy-300x300.jpg',
-    'https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YB9AP5B-Copy-300x300.jpg',
+    "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YT84U2V-Copy-300x300.jpg",
+    "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-NHZH594-Copy-300x300.jpg",
+    "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-YB9AP5B-Copy-300x300.jpg",
   ];
 
   return (
     <footer className="bg-drone-dark text-primary-foreground">
       <div className="container mx-auto px-4 lg:px-8 py-12 md:py-16">
-
         {/* Top Grid */}
         <div className="grid gap-10 md:grid-cols-2 lg:grid-cols-4 mb-10">
-
           {/* Logo & Description */}
           <div>
             <img
-              src="https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/Group-2.png"
+              src={logo}
               alt="DroneX Logo"
               className="h-8 md:h-10 mb-4 brightness-0 invert"
             />
@@ -32,17 +53,15 @@ const Footer = () => {
 
           {/* Quick Links */}
           <div>
-            <h4 className="text-lg font-bold font-heading mb-4">
-              Quick link
-            </h4>
+            <h4 className="text-lg font-bold font-heading mb-4">Quick link</h4>
             <ul className="space-y-2">
               {quickLinks.map((link, index) => (
                 <li key={index}>
                   <a
-                    href="#"
+                    href={link.path}
                     className="text-primary-foreground/70 hover:text-primary transition text-sm"
                   >
-                    {link}
+                    {link.name}
                   </a>
                 </li>
               ))}
@@ -51,39 +70,40 @@ const Footer = () => {
 
           {/* Services */}
           <div>
-            <h4 className="text-lg font-bold font-heading mb-4">
-              Services
-            </h4>
+            <h4 className="text-lg font-bold font-heading mb-4">Services</h4>
             <ul className="space-y-2">
-              {serviceLinks.map((link, index) => (
-                <li key={index}>
-                  <a
-                    href="#"
-                    className="text-primary-foreground/70 hover:text-primary transition text-sm"
-                  >
-                    {link}
-                  </a>
-                </li>
-              ))}
+              {serviceLinks.map((link, index) => {
+                const protectedRoutes = ["/cart", "/checkout", "/account"];
+
+                const isProtected = protectedRoutes.includes(link.path);
+                return (
+                  <li key={index}>
+                    <a
+                      href={isProtected ? handleProtectedRoute(link.path) : link.path}
+                      className="text-primary-foreground/70 hover:text-primary transition text-sm"
+                    >
+                      {link.name}
+                    </a>
+                  </li>
+                );
+              })}
             </ul>
           </div>
 
           {/* Contact */}
           <div>
-            <h4 className="text-lg font-bold font-heading mb-4">
-              Contact Us
-            </h4>
+            <h4 className="text-lg font-bold font-heading mb-4">Contact Us</h4>
             <ul className="space-y-3">
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary" />
                 <span className="text-primary-foreground/70 text-sm">
-                  +62 812-3456-7890
+                  +91 xxxxxxxxxx
                 </span>
               </li>
               <li className="flex items-center gap-3">
                 <Mail className="w-4 h-4 text-primary" />
                 <span className="text-primary-foreground/70 text-sm">
-                  hello@dronexstudio.com
+                  abeyonix@gmail.com
                 </span>
               </li>
               <li className="flex items-start gap-3">
@@ -98,9 +118,7 @@ const Footer = () => {
 
         {/* Bottom Section */}
         <div className="border-t border-primary-foreground/10 pt-8">
-
           <div className="flex flex-col lg:flex-row gap-8 items-center lg:items-start justify-between">
-
             {/* Gallery */}
             <div className="flex gap-3">
               {galleryImages.map((img, index) => (
@@ -141,7 +159,6 @@ const Footer = () => {
                 </button>
               </div>
             </div>
-
           </div>
         </div>
       </div>

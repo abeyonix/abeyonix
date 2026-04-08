@@ -1,22 +1,22 @@
 const features = [
   {
-    title: "Cinematic Quality",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    title: "Custom Engineering",
+    description: "We design and build drones, robotics systems, and IoT solutions tailored exactly to your requirements — not off-the-shelf products.",
     icon: "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/Drone_9-1-2.png",
   },
   {
     title: "Advanced Technology",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    description: "Using modern components, flight systems, and embedded technologies to deliver high performance, precision, and reliability.",
     icon: "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/Drone_11-1-2.png",
   },
   {
-    title: "Licensed Pilots",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    title: "Expert Support",
+    description: "From consultation to deployment and repair, we provide complete technical support at every stage of your project.",
     icon: "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/Drone-1.png",
   },
   {
-    title: "Flexible Services",
-    description: "Lorem ipsum dolor sit amet, consectetur adipiscing elit.",
+    title: "Flexible Solutions",
+    description: "Whether you're a student, startup, or industry — our solutions are scalable, affordable, and adaptable to your needs.",
     icon: "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/Drone_8-1-2.png",
   },
 ];
@@ -70,10 +70,10 @@ const WhyChooseUs = () => {
               Why Choose Us
             </span>
             <h2 className="text-3xl lg:text-5xl font-bold text-foreground font-playfair leading-tight">
-              Premium drone visuals with advanced tech and certified pilots.
+              Smart drone and robotics solutions built for performance and innovation.
             </h2>
             <p className="text-muted-foreground leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras non ligula vel nisi tempor hendrerit. Suspendisse potenti. Curabitur consequat augue vitae eros consequat, vitae egestas urna placerat.
+              We specialize in developing custom drones, robotics systems, and IoT-based solutions that solve real-world problems. From design and prototyping to final deployment, our focus is on delivering reliable, efficient, and future-ready technology.
             </p>
           </div>
         </div>

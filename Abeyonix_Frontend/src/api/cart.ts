@@ -35,6 +35,10 @@ export interface CartItemCreate {
   session_id?: string;
 }
 
+export interface BulkCartPayload {
+  items: CartItemCreate[];
+}
+
 // export interface CartItemResponse {
 //   id: number;
 //   user_id: number;
@@ -73,12 +77,39 @@ export const getCartItems = async (
 export const addCartItem = async (
   payload: CartItemCreate
 ): Promise<CartItemResponse> => {
-  const { data } = await api.post<CartItemResponse>(
-    "/cart",
-    payload
-  );
+  try {
+    const { data } = await api.post<CartItemResponse>(
+      "/cart",
+      payload
+    );
 
-  return data;
+    return data;
+  } catch (error: any) {
+    const message =
+      error?.response?.data?.detail ||
+      "Failed to add item to cart";
+
+    throw message; // keep existing behavior for caller
+  }
+};
+
+
+export const addBulkCartItems = async (
+  payload: BulkCartPayload
+): Promise<any[]> => {
+  try {
+    const response = await api.post<any[]>(
+      "/cart/bulk",
+      payload
+    );
+
+    return response.data;
+  } catch (error: any) {
+    throw (
+      error?.response?.data?.detail ||
+      "Failed to add items to cart"
+    );
+  }
 };
 
 

@@ -8,4 +8,23 @@ const api = axios.create({
   timeout: 10000,
 });
 
+
+api.interceptors.request.use(
+  (config) => {
+    const stored = localStorage.getItem("auth");
+
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      const token = parsed?.token;
+
+      if (token) {
+        config.headers.Authorization = `Bearer ${token}`;
+      }
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 export default api;

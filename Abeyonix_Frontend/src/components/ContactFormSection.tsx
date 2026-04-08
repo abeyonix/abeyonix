@@ -1,6 +1,52 @@
-import { MapPin, Phone, Mail, Facebook, Twitter, Linkedin, Instagram } from 'lucide-react';
+import { useState } from 'react';
+import { MapPin, Phone, Mail, Facebook, Twitter, Linkedin, Instagram, Loader2 } from 'lucide-react';
+// Adjust the import path to where your API service file is located
+import { createInquiry, InquiryPayload } from '@/api/inquiry'; 
 
 const ContactFormSection = () => {
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    email: '',
+    telephone: '',
+    message: '',
+  });
+  const [isLoading, setIsLoading] = useState(false);
+  const [successMessage, setSuccessMessage] = useState('');
+  const [errorMessage, setErrorMessage] = useState('');
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { name, value } = e.target;
+    setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setSuccessMessage('');
+    setErrorMessage('');
+
+    // Combine first and last name as required by the API payload
+    const payload: InquiryPayload = {
+      name: `${formData.firstName} ${formData.lastName}`,
+      email: formData.email,
+      telephone: formData.telephone,
+      message: formData.message,
+    };
+
+    try {
+      await createInquiry(payload);
+      setSuccessMessage('Your inquiry has been submitted successfully!');
+      // Reset form fields on successful submission
+      setFormData({ firstName: '', lastName: '', email: '', telephone: '', message: '' });
+    } catch (error: any) {
+      // Use the error message from the API call or a generic one
+      setErrorMessage(error.message || 'An unexpected error occurred. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <section className="relative py-24 bg-muted">
       <div className="container mx-auto px-4 relative z-10">
@@ -24,13 +70,17 @@ const ContactFormSection = () => {
               <h2 className="text-3xl font-bold font-playfair text-white mb-6">
                 Get In Touch
               </h2>
-              <form className="space-y-4">
+              <form className="space-y-4" onSubmit={handleSubmit}>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-sm font-medium text-white mb-1">First Name</label>
                     <input
                       type="text"
+                      name="firstName"
+                      value={formData.firstName}
+                      onChange={handleInputChange}
                       placeholder="John"
+                      required
                       className="w-full px-4 py-2 bg-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-drone-green transition-colors"
                     />
                   </div>
@@ -38,7 +88,11 @@ const ContactFormSection = () => {
                     <label className="block text-sm font-medium text-white mb-1">Last Name</label>
                     <input
                       type="text"
+                      name="lastName"
+                      value={formData.lastName}
+                      onChange={handleInputChange}
                       placeholder="Doe"
+                      required
                       className="w-full px-4 py-2 bg-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-drone-green transition-colors"
                     />
                   </div>
@@ -48,7 +102,11 @@ const ContactFormSection = () => {
                   <label className="block text-sm font-medium text-white mb-1">Email Address</label>
                   <input
                     type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
                     placeholder="example@mail.com"
+                    required
                     className="w-full px-4 py-2 bg-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-drone-green transition-colors"
                   />
                 </div>
@@ -57,6 +115,9 @@ const ContactFormSection = () => {
                   <label className="block text-sm font-medium text-white mb-1">Telephone</label>
                   <input
                     type="tel"
+                    name="telephone"
+                    value={formData.telephone}
+                    onChange={handleInputChange}
                     placeholder="+123 456 7890"
                     className="w-full px-4 py-2 bg-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-drone-green transition-colors"
                   />
@@ -65,19 +126,43 @@ const ContactFormSection = () => {
                 <div>
                   <label className="block text-sm font-medium text-white mb-1">Message</label>
                   <textarea
-                    // rows="4"
+                    name="message"
+                    value={formData.message}
+                    onChange={handleInputChange}
+                    rows={4}
                     placeholder="Hello there!"
+                    required
                     className="w-full px-4 py-2 bg-white border border-transparent rounded-md focus:outline-none focus:ring-2 focus:ring-drone-green transition-colors resize-none"
                   ></textarea>
                 </div>
 
                 <button
                   type="submit"
-                  className="bg-primary text-white px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors"
+                  disabled={isLoading}
+                  className="bg-primary text-white px-8 py-3 rounded-full font-medium hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center justify-center gap-2 w-full sm:w-auto"
                 >
-                  Submit
+                  {isLoading ? (
+                    <>
+                      <Loader2 className="w-5 h-5 animate-spin" />
+                      Submitting...
+                    </>
+                  ) : (
+                    'Submit'
+                  )}
                 </button>
               </form>
+
+              {/* Success and Error Messages */}
+              {successMessage && (
+                <div className="mt-4 p-4 bg-green-100 border border-green-400 text-green-700 rounded-md">
+                  {successMessage}
+                </div>
+              )}
+              {errorMessage && (
+                <div className="mt-4 p-4 bg-red-100 border border-red-400 text-red-700 rounded-md">
+                  {errorMessage}
+                </div>
+              )}
             </div>
           </div>
 
