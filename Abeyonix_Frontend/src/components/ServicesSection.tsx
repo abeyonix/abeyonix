@@ -21,43 +21,49 @@ const ServicesSection = () => {
   }, []);
 
   const services = [
-    {
-      title: "Aerial Videography",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/drone-filming-video-drone-filming-UAV-aerial-footage-drone-video-1-1.png",
-    },
-    {
-      title: "Aerial Photography",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/camera-drone-drone-photography-aerial-photography-drone-camera-filming-drone-1-1.png",
-    },
-    {
-      title: "Real Estate Shots",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/drone-aerial-drone-quadcopter-UAV-drone-technology-1-1.png",
-    },
-    {
-      title: "Event Coverage",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/drone-surveillance-security-drone-monitoring-drone-drone-watch-surveillance-UAV-1.png",
-    },
-    {
-      title: "Social Media Content",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/flying-drone-airborne-drone-drone-flight-aerial-view-flying-UAV-1.png",
-    },
-    {
-      title: "Mapping & Surveying",
-      description: "Lorem ipsum...",
-      image:
-        "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/drone-remote-drone-controller-UAV-controller-flying-remote-remote-control-drone-1-1.png",
-    },
-  ];
+  {
+    title: "Custom Drone Development",
+    description:
+      "We design and build customized drones tailored to your specific needs, including surveillance, mapping, and industrial applications.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/149/149060.png", // drone icon
+  },
+  {
+    title: "IoT-Based Project Development",
+    description:
+      "Transform your ideas into real-world IoT solutions with smart devices, sensors, and automation systems built for efficiency and innovation.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/4149/4149678.png", // IoT network
+  },
+  {
+    title: "3D Printing & Prototyping",
+    description:
+      "Bring your concepts to life with high-precision 3D printing and rapid prototyping for functional and creative applications.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/1995/1995539.png", // 3D printer
+  },
+  {
+    title: "Smart IoT Solutions",
+    description:
+      "We develop scalable IoT systems for smart homes, industries, and automation, enabling real-time monitoring and control.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/3062/3062634.png", // smart home IoT
+  },
+  {
+    title: "Robotics & Automation Solutions",
+    description:
+      "Advanced robotics and automation solutions designed to improve productivity, streamline operations, and solve complex challenges.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/4712/4712027.png", // robot arm
+  },
+  {
+    title: "Drone Repair & Maintenance",
+    description:
+      "Reliable drone repair and maintenance services to ensure optimal performance, durability, and long-term efficiency.",
+    image:
+      "https://cdn-icons-png.flaticon.com/512/942/942748.png", // repair tools
+  },
+];
 
   return (
     <section
@@ -126,9 +132,9 @@ const ServicesSection = () => {
               Our Services
             </p>
             <h2 className="text-3xl md:text-4xl lg:text-5xl font-bold text-primary-foreground">
-              High-quality aerial visuals
+              Innovative technology solutions
               <br />
-              for professional needs
+               for modern real-world needs
             </h2>
           </div>
           <button className="btn-primary mt-6 lg:mt-0">Learn More</button>

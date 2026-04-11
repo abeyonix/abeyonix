@@ -84,27 +84,27 @@ const Header = () => {
   };
 
   useEffect(() => {
-  if (!isHomePage) {
-    setIsTransparent(false);
-    return;
-  }
-
-  const handleScroll = () => {
-    const heroHeight = window.innerHeight; // full screen hero
-    const scrollY = window.scrollY;
-
-    if (scrollY < heroHeight - 100) {
-      setIsTransparent(true);
-    } else {
+    if (!isHomePage) {
       setIsTransparent(false);
+      return;
     }
-  };
 
-  handleScroll();
-  window.addEventListener("scroll", handleScroll);
+    const handleScroll = () => {
+      const heroHeight = window.innerHeight; // full screen hero
+      const scrollY = window.scrollY;
 
-  return () => window.removeEventListener("scroll", handleScroll);
-}, [isHomePage]);
+      if (scrollY < heroHeight - 100) {
+        setIsTransparent(true);
+      } else {
+        setIsTransparent(false);
+      }
+    };
+
+    handleScroll();
+    window.addEventListener("scroll", handleScroll);
+
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, [isHomePage]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -133,9 +133,11 @@ const Header = () => {
 
     ${
       isTransparent
-        ? "lg:bg-white/10 lg:backdrop-blur-md lg:shadow-none"
+        ? "bg-white/15 backdrop-blur-md shadow-none"
         : "bg-background shadow-lg"
     }
+
+    fixed top-0 left-0 z-50
 
     lg:fixed lg:top-4 lg:left-1/2 lg:-translate-x-1/2
     lg:z-50
@@ -150,7 +152,9 @@ const Header = () => {
               <img
                 src={logo}
                 alt="DroneX Logo"
-                className={`h-8 md:h-10 ${isTransparent ? "brightness-0 invert" : ""}`}
+                className={`h-8 md:h-10 ${
+                  isTransparent ? "brightness-0 invert" : "brightness-100"
+                }`}
               />
             </a>
 
@@ -363,11 +367,17 @@ const Header = () => {
             </div>
 
             {/* ================= MOBILE RIGHT ================= */}
-            <div className="flex lg:hidden items-center">
+            <div
+              className={`flex lg:hidden items-center ${
+                isTransparent ? "text-white" : "text-gray-800"
+              }`}
+            >
               {!user ? (
                 <button
                   onClick={() => setLoginOpen(true)}
-                  className="text-drone-orange font-medium"
+                  className={`font-medium ${
+                    isTransparent ? "text-white" : "text-drone-orange"
+                  }`}
                 >
                   Login
                 </button>
@@ -377,7 +387,13 @@ const Header = () => {
                   className="flex items-center gap-2"
                 >
                   <User className="w-5 h-5" />
-                  <span className="text-sm font-medium">{user.user_name}</span>
+                  <span
+                    className={`font-medium ${
+                      isTransparent ? "text-white" : "text-drone-orange"
+                    }`}
+                  >
+                    {user.user_name}
+                  </span>
                 </button>
               )}
             </div>

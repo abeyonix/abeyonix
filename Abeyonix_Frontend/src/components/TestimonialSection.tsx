@@ -3,21 +3,21 @@ import { useState, useEffect } from "react";
 
 const testimonials = [
   {
-    text: "Lorem ipsum dolor sit amet, consectetur adipiscing elit. Cras non ligula vel nisi tempor hendrerit.",
+    text: "Their innovative approach and technical expertise helped turn our idea into a fully functional solution. The final result exceeded our expectations.",
     name: "Daniel Harris",
     role: "Client",
     image:
       "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-P3RKYH9-2.jpg",
   },
   {
-    text: "Exceptional quality and professionalism. The aerial footage exceeded our expectations.",
+    text: "Highly professional team delivering quality work across multiple technologies. From design to execution, everything was handled seamlessly.",
     name: "Sarah Mitchell",
     role: "Client",
     image:
       "https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-P3RKYH9-768x768.jpg",
   },
   {
-    text: "They captured stunning visuals that truly elevated our brand's marketing materials.",
+    text: "Their ability to integrate smart systems and deliver practical solutions made a huge difference to our project. Truly reliable and innovative.",
     name: "Michael Chen",
     role: "Client",
     image:
@@ -128,11 +128,11 @@ const TestimonialSection = () => {
                 alt="Drone Footage"
               />
 
-              <button className="absolute inset-0 flex items-center justify-center group">
+              {/* <button className="absolute inset-0 flex items-center justify-center group">
                 <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow transition-transform group-hover:scale-110">
                   <Play className="w-6 h-6 text-drone-green fill-drone-green ml-1" />
                 </div>
-              </button>
+              </button> */}
             </div>
 
           </div>

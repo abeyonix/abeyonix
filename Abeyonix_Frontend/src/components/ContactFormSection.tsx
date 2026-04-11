@@ -181,7 +181,7 @@ const ContactFormSection = () => {
                   </div>
                   <div>
                     <p className="text-white/70 text-sm">Phone</p>
-                    <p className="font-medium">+1 (555) 123-4567</p>
+                    <p className="font-medium">+91 8763049067</p>
                   </div>
                 </div>
 
@@ -191,7 +191,7 @@ const ContactFormSection = () => {
                   </div>
                   <div>
                     <p className="text-white/70 text-sm">Email</p>
-                    <p className="font-medium">info@dronevisuals.com</p>
+                    <p className="font-medium">abeyonix@gmail.com</p>
                   </div>
                 </div>
 
@@ -201,7 +201,7 @@ const ContactFormSection = () => {
                   </div>
                   <div>
                     <p className="text-white/70 text-sm">Location</p>
-                    <p className="font-medium">123 Aerial View, New York, USA</p>
+                    <p className="font-medium">Bhubaneswar, Odisha, India</p>
                   </div>
                 </div>
               </div>

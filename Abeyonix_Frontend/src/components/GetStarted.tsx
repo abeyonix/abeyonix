@@ -27,28 +27,31 @@ const GetStarted = () => {
       {/* ================= CONTENT ================= */}
       <div className="container mx-auto px-4 relative z-20">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-10 lg:gap-12 items-center">
-
           {/* LEFT CONTENT */}
           <div className="space-y-5 text-center lg:text-left">
             <span className="text-xs font-semibold tracking-[0.25em] text-primary uppercase">
               Get Started
             </span>
 
-            <h2 className="
+            <h2
+              className="
               text-2xl sm:text-3xl lg:text-5xl
               font-bold font-playfair
               text-white leading-tight
-            ">
-              Start your project with cinematic drone visuals.
+            "
+            >
+              Turn your ideas into reality with innovative technology solutions.
             </h2>
 
             <p className="text-white/80 text-sm sm:text-base leading-relaxed max-w-lg mx-auto lg:mx-0">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit tellus,
-              luctus nec ullamcorper mattis, pulvinar dapibus leo.
+              We specialize in building advanced, real-world projects that
+              combine creativity, engineering, and smart technology. Whether
+              it's aerial systems, rapid prototyping, or connected devices, our
+              solutions are designed to be efficient, scalable, and impactful.
             </p>
 
             <div className="pt-2">
-              <Button
+              {/* <Button
                 className="
                   w-full sm:w-auto
                   bg-primary hover:bg-primary/90
@@ -57,26 +60,25 @@ const GetStarted = () => {
                 "
               >
                 Learn More
-              </Button>
+              </Button> */}
             </div>
           </div>
 
           {/* RIGHT IMAGE */}
           <div className="hidden lg:flex justify-end">
-  <div
-    className="
+            <div
+              className="
       relative rounded-2xl overflow-hidden shadow-2xl
       w-full max-w-md aspect-video
     "
-  >
-    <img
-      src="https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-DDL5TQ8.jpg"
-      alt="Drone Preview"
-      className="w-full h-full object-cover"
-    />
-  </div>
-</div>
-
+            >
+              <img
+                src="https://templates.sparklethings.com/dronex/wp-content/uploads/sites/193/2025/12/image-DDL5TQ8.jpg"
+                alt="Drone Preview"
+                className="w-full h-full object-cover"
+              />
+            </div>
+          </div>
         </div>
       </div>
     </section>

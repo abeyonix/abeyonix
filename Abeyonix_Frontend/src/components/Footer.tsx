@@ -1,7 +1,7 @@
 import { Phone, Mail, MapPin } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
 import footerLogo from "@/assets/abeyonix_footer_logo.png";
-import logo from "@/assets/abeyonix_header_logo.png"
+import logo from "@/assets/abeyonix_header_logo.png";
 
 const Footer = () => {
   const { user } = useAuth();
@@ -46,8 +46,10 @@ const Footer = () => {
               className="h-8 md:h-10 mb-4 brightness-0 invert"
             />
             <p className="text-primary-foreground/70 text-sm leading-relaxed">
-              Lorem ipsum dolor sit amet, consectetur adipiscing elit. Ut elit
-              tellus, luctus nec ullamcorper mattis.
+              We deliver innovative solutions in Drone Technology, 3D Printing,
+              and IoT systems. From concept to deployment, our focus is on
+              building smart, scalable, and real-world solutions that drive
+              efficiency, creativity, and technological advancement.
             </p>
           </div>
 
@@ -79,7 +81,11 @@ const Footer = () => {
                 return (
                   <li key={index}>
                     <a
-                      href={isProtected ? handleProtectedRoute(link.path) : link.path}
+                      href={
+                        isProtected
+                          ? handleProtectedRoute(link.path)
+                          : link.path
+                      }
                       className="text-primary-foreground/70 hover:text-primary transition text-sm"
                     >
                       {link.name}
@@ -97,7 +103,7 @@ const Footer = () => {
               <li className="flex items-center gap-3">
                 <Phone className="w-4 h-4 text-primary" />
                 <span className="text-primary-foreground/70 text-sm">
-                  +91 xxxxxxxxxx
+                  +91 8763049067
                 </span>
               </li>
               <li className="flex items-center gap-3">
@@ -109,7 +115,7 @@ const Footer = () => {
               <li className="flex items-start gap-3">
                 <MapPin className="w-4 h-4 text-primary mt-0.5" />
                 <span className="text-primary-foreground/70 text-sm">
-                  Jl. Jend. Sudirman No. 32, Jakarta
+                  Bhubaneswar, Odisha, India
                 </span>
               </li>
             </ul>

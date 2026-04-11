@@ -44,6 +44,25 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
     return () => window.removeEventListener("keydown", handleEsc);
   }, [open, onClose]);
 
+    useEffect(() => {
+    if (!open) {
+      // Reset everything when modal closes
+      setStep("register");
+      setOtp("");
+      setErrors({});
+      setSecondsLeft(OTP_DURATION);
+
+      setForm({
+        user_name: "",
+        email: "",
+        password: "",
+        first_name: "",
+        last_name: "",
+        phone: "",
+      });
+    }
+  }, [open]);
+
   // OTP countdown
   useEffect(() => {
     if (step !== "otp") return;
@@ -56,7 +75,7 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
           return 0;
         }
         return prev - 1;
-      }); 
+      });
     }, 1000);
 
     return () => clearInterval(interval);
@@ -65,35 +84,35 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
   if (!open) return null;
 
   const validateForm = () => {
-  const newErrors: any = {};
+    const newErrors: any = {};
 
-  if (!form.user_name.trim()) newErrors.user_name = "Username is required";
+    if (!form.user_name.trim()) newErrors.user_name = "Username is required";
 
-  if (!form.email.trim()) {
-    newErrors.email = "Email is required";
-  } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
-    newErrors.email = "Invalid email format";
-  }
+    if (!form.email.trim()) {
+      newErrors.email = "Email is required";
+    } else if (!/^\S+@\S+\.\S+$/.test(form.email)) {
+      newErrors.email = "Invalid email format";
+    }
 
-  if (!form.password.trim()) {
-    newErrors.password = "Password is required";
-  } else if (form.password.length < 6) {
-    newErrors.password = "Minimum 6 characters required";
-  }
+    if (!form.password.trim()) {
+      newErrors.password = "Password is required";
+    } else if (form.password.length < 6) {
+      newErrors.password = "Minimum 6 characters required";
+    }
 
-  if (!form.first_name.trim()) newErrors.first_name = "First name is required";
-  if (!form.last_name.trim()) newErrors.last_name = "Last name is required";
+    if (!form.first_name.trim())
+      newErrors.first_name = "First name is required";
+    if (!form.last_name.trim()) newErrors.last_name = "Last name is required";
 
-  if (!form.phone.trim()) {
-    newErrors.phone = "Phone is required";
-  } else if (!/^[6-9]\d{9}$/.test(form.phone)) {
-    newErrors.phone = "Invalid phone number";
-  }
+    if (!form.phone.trim()) {
+      newErrors.phone = "Phone is required";
+    } else if (!/^[6-9]\d{9}$/.test(form.phone)) {
+      newErrors.phone = "Invalid phone number";
+    }
 
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
-
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -120,44 +139,45 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
     }
   };
 
+
+
   const handleVerifyOtp = async (e: React.FormEvent) => {
-  e.preventDefault();
-  setLoading(true);
+    e.preventDefault();
+    setLoading(true);
 
-  try {
-    await verifyRegistrationOtp({
-      email: form.email,
-      otp,
-    });
+    try {
+      await verifyRegistrationOtp({
+        email: form.email,
+        otp,
+      });
 
-    toast.success("Account verified successfully 🎉");
+      toast.success("Account verified successfully 🎉");
 
-    // ✅ AUTO LOGIN AFTER OTP
-    const res = await login({
-      email: form.email,
-      password: form.password,
-    });
+      // ✅ AUTO LOGIN AFTER OTP
+      const res = await login({
+        email: form.email,
+        password: form.password,
+      });
 
-    loginUser({
-      token: res.access_token,
-      user: {
-        user_id: res.user_id,
-        user_identity_id: res.user_identity_id,
-        user_name: res.user_name,
-        full_name: res.full_name,
-        email: res.email,
-        role: res.role,
-      },
-    });
+      loginUser({
+        token: res.access_token,
+        user: {
+          user_id: res.user_id,
+          user_identity_id: res.user_identity_id,
+          user_name: res.user_name,
+          full_name: res.full_name,
+          email: res.email,
+          role: res.role,
+        },
+      });
 
-    onClose(); // close modal
-
-  } catch (err: any) {
-    toast.error(err?.response?.data?.detail || "Invalid OTP");
-  } finally {
-    setLoading(false);
-  }
-};
+      onClose(); // close modal
+    } catch (err: any) {
+      toast.error(err?.response?.data?.detail || "Invalid OTP");
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const minutes = Math.floor(secondsLeft / 60);
   const seconds = secondsLeft % 60;

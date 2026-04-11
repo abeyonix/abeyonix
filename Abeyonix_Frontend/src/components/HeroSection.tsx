@@ -8,17 +8,40 @@ import slider3 from "@/assets/banners/Abeyonix_3D_printing-1.png";
 import slider4 from "@/assets/banners/Abeyonix_all.png";
 import slider5 from "@/assets/banners/Abeyonix_3D_printing-2.png";
 
+import mobSlider1 from "@/assets/banners/abeyonix_mob_speedybee.png";
+import mobSlider2 from "@/assets/banners/abeyonix_mob_drone.png";
+import mobSlider3 from "@/assets/banners/abeyonix_mob_3d.png";
+import mobSlider4 from "@/assets/banners/abeyonix_mob_all.png";
+import mobSlider5 from "@/assets/banners/abeyonix_mob_all.png";
+
 const HeroSection = () => {
   const [activeSlide, setActiveSlide] = useState(0);
   const navigate = useNavigate();
+  const [isMobile, setIsMobile] = useState(false);
 
-  const features = [
-    "Advanced drones",
-    "robotics",
-    "IoT solutions",
+  const features = ["Advanced drones", "robotics", "IoT solutions"];
+
+  useEffect(() => {
+    const handleResize = () => {
+      setIsMobile(window.innerWidth < 768); // Tailwind md breakpoint
+    };
+
+    handleResize(); // run once
+    window.addEventListener("resize", handleResize);
+
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
+
+  const desktopImages = [SpeedyBee, slider2, slider3, slider4, slider5];
+  const mobileImages = [
+    mobSlider1,
+    mobSlider2,
+    mobSlider3,
+    mobSlider4,
+    mobSlider5,
   ];
 
-  const bgImages = [SpeedyBee, slider2, slider3, slider4, slider5];
+  const bgImages = isMobile ? mobileImages : desktopImages;
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -26,7 +49,7 @@ const HeroSection = () => {
     }, 6000); // Change image every 5 seconds
 
     return () => clearInterval(interval);
-  }, [bgImages.length]);
+  }, [isMobile]);
 
   return (
     <>
@@ -102,12 +125,12 @@ const HeroSection = () => {
         </div>
 
         {/* Flying Drone */}
-       <img
-  src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png"
-  alt="Flying Drone"
-  className="absolute w-32 sm:w-40 md:w-56 pointer-events-none animate-drone"
-  style={{ top: 0, left: 0, zIndex: 25 }}
-/>
+        <img
+          src="https://web.moxcreative.com/fleanec/wp-content/uploads/sites/11/2023/02/pngegg.png"
+          alt="Flying Drone"
+          className="absolute w-32 sm:w-40 md:w-56 pointer-events-none animate-drone"
+          style={{ top: 0, left: 0, zIndex: 25 }}
+        />
 
         {/* Overlay */}
         <div className="absolute inset-0 bg-black/50 z-20" />
@@ -118,7 +141,7 @@ const HeroSection = () => {
             {/* LEFT CONTENT */}
             <div className="text-primary-foreground text-center md:text-left">
               <h1 className="text-4xl sm:text-5xl md:text-6xl lg:text-7xl font-bold font-heading leading-tight mb-6 md:mb-8 italic">
-                Build. Customize. 
+                Build. Customize.
                 <br />
                 Fly. Innovate.
               </h1>
