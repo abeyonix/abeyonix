@@ -1,0 +1,110 @@
+<!-- app/services/mail/templates/order_delivered.html -->
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Greeting -->
+<h2 style="margin:0 0 8px; color:#1a1a2e; font-size:22px;">
+  Your Order Has Been Delivered! 🎉
+</h2>
+<p style="margin:0 0 20px; color:#555;">
+  Hi <strong>{{ user.first_name }} {{ user.last_name }}</strong>,
+</p>
+<p style="margin:0 0 24px; color:#555;">
+  Your order <strong>#{{ order.order_number }}</strong> has been successfully
+  delivered. We hope you love your purchase! If you have any issues with
+  your order, feel free to reach out to us.
+</p>
+
+<hr style="border:none; border-top:1px solid #eeeeee; margin: 24px 0;" />
+
+<!-- ⭐ Rating Section -->
+<h3 style="margin:0 0 8px; color:#1a1a2e; font-size:16px; text-align:center;">
+  How was your experience? ⭐
+</h3>
+<p style="color:#888; font-size:13px; text-align:center; margin:0 0 20px;">
+  Tap a star to rate your order — it only takes a second!
+</p>
+
+<!-- Star Links — each opens the rating page with that star pre-selected -->
+<div style="text-align:center; margin-bottom: 8px;">
+  {% for star in [1, 2, 3, 4, 5] %}
+  <a href="{{ api_url }}ratings/rate?token={{ rating_token }}&rating={{ star }}"
+     style="display:inline-block; text-decoration:none;
+            font-size:42px; color:#ddd; margin: 0 4px;
+            line-height:1;">
+    ★
+  </a>
+  {% endfor %}
+</div>
+
+<p style="text-align:center; color:#aaa; font-size:12px; margin: 0 0 8px;">
+  1 = Poor &nbsp;·&nbsp; 5 = Excellent
+</p>
+
+<!-- Rate Now Button -->
+<div style="text-align:center; margin: 20px 0 28px;">
+  <a href="{{ api_url }}ratings/rate?token={{ rating_token }}&rating=5"
+     style="display:inline-block; background-color:#f59e0b; color:#ffffff;
+            padding: 12px 28px; border-radius:6px; font-size:14px;
+            font-weight:bold; text-decoration:none;">
+    ⭐ Rate My Order
+  </a>
+</div>
+
+<hr style="border:none; border-top:1px solid #eeeeee; margin: 24px 0;" />
+
+<!-- Order Summary (quick recap) -->
+<h3 style="margin:0 0 14px; color:#1a1a2e; font-size:16px;">
+  📦 Order Summary
+</h3>
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="background:#f8f8f8; border-radius:6px;
+              font-size:14px; color:#555; border:1px solid #eee;">
+  <tr>
+    <td style="padding:12px 20px; border-bottom:1px solid #eee; width:45%;">
+      <strong style="color:#333;">Order Number</strong>
+    </td>
+    <td style="padding:12px 20px; border-bottom:1px solid #eee;">
+      #{{ order.order_number }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 20px; border-bottom:1px solid #eee;">
+      <strong style="color:#333;">Total Paid</strong>
+    </td>
+    <td style="padding:12px 20px; border-bottom:1px solid #eee;
+               font-weight:bold; color:#1a1a2e;">
+      ₹{{ "%.2f"|format(order.total_amount) }}
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:12px 20px;">
+      <strong style="color:#333;">Delivered To</strong>
+    </td>
+    <td style="padding:12px 20px; line-height:1.6;">
+      {{ address.contact_name }},
+      {{ address.city }}, {{ address.state_province }}
+    </td>
+  </tr>
+</table>
+
+<!-- View Order Button -->
+<div style="text-align:center; margin: 28px 0 8px;">
+  <a href="{{ frontend_url }}/orders/{{ order.order_number }}"
+     style="display:inline-block; background-color:#2563eb; color:#ffffff;
+            padding: 12px 28px; border-radius:6px; font-size:14px;
+            font-weight:bold; text-decoration:none;">
+    View Order Details
+  </a>
+</div>
+
+<p style="margin:24px 0 0; color:#888; font-size:13px; text-align:center;">
+  Need help? Contact us at
+  <a href="mailto:{{ company.company_email }}"
+     style="color:#2563eb; text-decoration:none;">
+    {{ company.company_email }}
+  </a>
+</p>
+
+{% endblock %}

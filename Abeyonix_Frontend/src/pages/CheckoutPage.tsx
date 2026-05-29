@@ -9,8 +9,9 @@ import { getCheckout } from "@/api/order";
 import { CheckoutPageResponse } from "@/types/order";
 import { formatPrice } from "@/utils/formatPrice";
 import { createUserAddress } from "@/api/address";
-import { placeOrder } from "@/api/order";
-
+// import { placeOrder } from "@/api/order";
+import { InitiatePaymentRequest } from "@/types/order";
+import { initiatePayment, verifyPayment } from "@/api/order";
 
 import { UserAddressCreate } from "@/types/address";
 
@@ -37,8 +38,13 @@ const CheckoutPage = () => {
     state_province: "",
     postal_code: "",
     country: "",
+    contact_name: "",
+    contact_phone: "",
     is_default: false,
   });
+
+  const [paymentLoading, setPaymentLoading] = useState(false);
+  const [paymentError, setPaymentError] = useState<string | null>(null);
 
   const { user, loading: authLoading } = useAuth();
 
@@ -51,39 +57,39 @@ const CheckoutPage = () => {
     breadcrumbs: [{ label: "Home", href: "/" }, { label: "Checkout" }],
   };
 
-  useEffect(() => {
-    const fetchCheckout = async () => {
-      if (!user?.user_id) return;
+  // useEffect(() => {
+  //   const fetchCheckout = async () => {
+  //     if (!user?.user_id) return;
 
-      try {
-        setLoading(true);
+  //     try {
+  //       setLoading(true);
 
-        const productId = searchParams.get("product_id");
-        const quantity = searchParams.get("quantity");
+  //       const productId = searchParams.get("product_id");
+  //       const quantity = searchParams.get("quantity");
 
-        const response = await getCheckout({
-          user_id: user.user_id,
-          product_id: productId ? Number(productId) : undefined,
-          quantity: quantity ? Number(quantity) : undefined,
-        });
+  //       const response = await getCheckout({
+  //         user_id: user.user_id,
+  //         product_id: productId ? Number(productId) : undefined,
+  //         quantity: quantity ? Number(quantity) : undefined,
+  //       });
 
-        setCheckoutData(response);
+  //       setCheckoutData(response);
 
-        if (response.address.length > 0) {
-          const defaultAddress =
-            response.address.find((a) => a.is_default) || response.address[0];
+  //       if (response.address.length > 0) {
+  //         const defaultAddress =
+  //           response.address.find((a) => a.is_default) || response.address[0];
 
-          setSelectedAddressId(defaultAddress.address_id);
-        }
-      } catch (error) {
-        console.error("Checkout error:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
+  //         setSelectedAddressId(defaultAddress.address_id);
+  //       }
+  //     } catch (error) {
+  //       console.error("Checkout error:", error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
 
-    fetchCheckout();
-  }, [user, searchParams]);
+  //   fetchCheckout();
+  // }, [user, searchParams]);
 
   const fetchCheckout = async (autoSelectId?: number) => {
     if (!user?.user_id) return;
@@ -121,6 +127,14 @@ const CheckoutPage = () => {
     fetchCheckout();
   }, [user, searchParams]);
 
+  const taxPercent =
+    checkoutData && Number(checkoutData.subtotal) > 0
+      ? (
+          (Number(checkoutData.tax) / Number(checkoutData.subtotal)) *
+          100
+        ).toFixed(0)
+      : "0";
+
   const handleAddAddress = async () => {
     if (!user?.user_id) return;
 
@@ -138,8 +152,15 @@ const CheckoutPage = () => {
         state_province: "",
         postal_code: "",
         country: "",
+        contact_name: "",
+        contact_phone: "",
         is_default: false,
       });
+
+      if (!addressForm.contact_name || !addressForm.contact_phone) {
+        alert("Contact name and phone are required");
+        return;
+      }
 
       // 🔥 Refetch and auto select new address
       await fetchCheckout(newAddress.address_id);
@@ -150,52 +171,109 @@ const CheckoutPage = () => {
 
   const handlePlaceOrder = async () => {
     if (!user?.user_id || !selectedAddressId) {
-      alert("Please select address");
+      alert("Please select a delivery address");
       return;
     }
+
+    setPaymentError(null);
+    setPaymentLoading(true);
 
     try {
       const productId = searchParams.get("product_id");
       const quantity = searchParams.get("quantity");
 
-      const payload: any = {
+      // ── Step 1: Initiate payment ───────────────────────────────
+      const payload: InitiatePaymentRequest = {
         user_id: user.user_id,
         address_id: selectedAddressId,
+        ...(productId &&
+          quantity && {
+            product_id: Number(productId),
+            quantity: Number(quantity),
+          }),
       };
 
-      // Buy Now flow
-      if (productId && quantity) {
-        payload.product_id = Number(productId);
-        payload.quantity = Number(quantity);
-      }
+      const paymentData = await initiatePayment(payload);
 
-      const order = await placeOrder(payload);
+      // ── Step 2: Open Razorpay popup ────────────────────────────
+      const options: RazorpayOptions = {
+        key: paymentData.key_id,
+        amount: paymentData.amount,
+        currency: paymentData.currency,
+        order_id: paymentData.razorpay_order_id,
+        name: "Your Store Name",
+        prefill: {
+          name: user.full_name || "",
+          email: user.email,
+          // contact: user.phone?.toString() || "",
+        },
+        theme: {
+          color: "#your-primary-color", // e.g. "#2563eb"
+        },
 
-      navigate(`/order-success/${order.order_id}`);
+        // ── Step 3: On payment success ─────────────────────────
+        handler: async (response) => {
+          try {
+            const order = await verifyPayment({
+              razorpay_order_id: response.razorpay_order_id,
+              razorpay_payment_id: response.razorpay_payment_id,
+              razorpay_signature: response.razorpay_signature,
+            });
 
-      // optional redirect
-      // navigate(`/order-success/${order.order_id}`);
-    } catch (error) {
-      console.error("Place order error:", error);
-      alert(error);
+            // ✅ Success — go to order success page
+            navigate(`/order-success/${order.order_id}`);
+          } catch (verifyError: any) {
+            // Payment went through but verification failed
+            // (very rare — usually a network blip)
+            setPaymentError(
+              "Payment received but confirmation failed. " +
+                "Please contact support with your payment ID: " +
+                response.razorpay_payment_id,
+            );
+          } finally {
+            setPaymentLoading(false);
+          }
+        },
+
+        modal: {
+          ondismiss: () => {
+            // User closed popup without paying
+            setPaymentLoading(false);
+            setPaymentError("Payment was cancelled. Please try again.");
+          },
+        },
+      };
+
+      const rzp = new window.Razorpay(options);
+      rzp.open();
+
+      // Note: don't setPaymentLoading(false) here —
+      // loading stays true until handler() or ondismiss() fires
+    } catch (initiateError: any) {
+      setPaymentLoading(false);
+      setPaymentError(
+        typeof initiateError === "string"
+          ? initiateError
+          : "Failed to start payment. Please try again.",
+      );
     }
   };
 
   if (authLoading) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      Loading...
-    </div>
-  );
-}
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Loading...
+      </div>
+    );
+  }
 
-if (!user) {
-  return (
-    <div className="min-h-screen flex items-center justify-center">
-      Please login to continue
-    </div>
-  );
-}
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        Please login to continue
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col">
@@ -298,6 +376,9 @@ if (!user) {
                           <span className="font-medium block">
                             {addr.address_line1}
                           </span>
+                          <p className="text-sm font-medium mt-1">
+                            {addr.contact_name} ({addr.contact_phone})
+                          </p>
 
                           <p className="text-sm text-gray-600">
                             {addr.city}, {addr.state_province} -{" "}
@@ -323,6 +404,8 @@ if (!user) {
 
                         {[
                           ["address_type", "Address Type"],
+                          ["contact_name", "Contact Name"],
+                          ["contact_phone", "Contact Phone"],
                           ["address_line1", "Address Line 1"],
                           ["address_line2", "Address Line 2"],
                           ["city", "City"],
@@ -333,6 +416,7 @@ if (!user) {
                           <input
                             key={name}
                             placeholder={label}
+                            type={name === "contact_phone" ? "tel" : "text"}
                             value={(addressForm as any)[name] || ""}
                             onChange={(e) =>
                               setAddressForm((prev) => ({
@@ -401,7 +485,7 @@ if (!user) {
                   </div>
 
                   <div className="flex justify-between mb-2 text-sm">
-                    <span>Tax</span>
+                    <span>Tax({taxPercent}%)</span>
                     <span>₹{formatPrice(Number(checkoutData.tax))}</span>
                   </div>
 
@@ -419,11 +503,46 @@ if (!user) {
                     </span>
                   </div>
 
+                  {/* Error message — add just above the button */}
+                  {paymentError && (
+                    <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-600">
+                      {paymentError}
+                    </div>
+                  )}
+
                   <button
                     onClick={handlePlaceOrder}
-                    className="mt-6 w-full bg-primary text-white py-3 rounded-lg hover:opacity-90 transition"
+                    disabled={paymentLoading}
+                    className="mt-6 w-full bg-primary text-white py-3 rounded-lg
+             hover:opacity-90 transition disabled:opacity-60
+             disabled:cursor-not-allowed flex items-center justify-center gap-2"
                   >
-                    Place Order
+                    {paymentLoading ? (
+                      <>
+                        <svg
+                          className="animate-spin h-4 w-4"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                        >
+                          <circle
+                            className="opacity-25"
+                            cx="12"
+                            cy="12"
+                            r="10"
+                            stroke="currentColor"
+                            strokeWidth="4"
+                          />
+                          <path
+                            className="opacity-75"
+                            fill="currentColor"
+                            d="M4 12a8 8 0 018-8v8H4z"
+                          />
+                        </svg>
+                        Processing...
+                      </>
+                    ) : (
+                      "Proceed to Payment"
+                    )}
                   </button>
                 </div>
               </div>

@@ -6,6 +6,8 @@ export interface UserAddressBase {
   state_province: string;
   postal_code: string;
   country: string;
+  contact_name: string;
+  contact_phone: string;
   is_default?: boolean;
 }
 
@@ -24,6 +26,8 @@ export interface UserAddressUpdate {
   state_province?: string;
   postal_code?: string;
   country?: string;
+  contact_name?: string;
+  contact_phone?: string;
   is_default?: boolean;
 }
 

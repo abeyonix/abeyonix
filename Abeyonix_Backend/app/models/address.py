@@ -33,6 +33,9 @@ class UserAddress(Base):
     postal_code = Column(String(20), nullable=False)
     country = Column(String(100), nullable=False)
 
+    contact_name  = Column(String(100), nullable=False)
+    contact_phone = Column(String(20), nullable=False)
+
     # ⭐ Default Address
     is_default = Column(Boolean, default=False)
 

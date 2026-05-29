@@ -23,16 +23,20 @@ class Settings(BaseSettings):
 
     # RESEND_API_KEY: str = os.getenv("RESEND_API_KEY")
 
-    PHONEPE_ENV :str = os.getenv("PHONEPE_ENV")
-    PHONEPE_MERCHANT_ID : str = os.getenv("PHONEPE_MERCHANT_ID")
-    PHONEPE_MERCHANT_SECRET : str = os.getenv("PHONEPE_MERCHANT_SECRET")
-    PHONEPE_CALLBACK_URL : str = os.getenv("PHONEPE_CALLBACK_URL")
+    RAZORPAY_KEY_ID: str = os.getenv("RAZORPAY_KEY_ID")
+    RAZORPAY_KEY_SECRET: str = os.getenv("RAZORPAY_KEY_SECRET")
 
     # s3 bucket 
     AWS_ACCESS_KEY_ID: str = os.getenv("AWS_ACCESS_KEY_ID")
     AWS_SECRET_ACCESS_KEY: str = os.getenv("AWS_SECRET_ACCESS_KEY")
     AWS_REGION: str = os.getenv("AWS_REGION")
     AWS_S3_BUCKET: str = os.getenv("AWS_S3_BUCKET")
+
+    FRONTEND_URL: str = os.getenv("FRONTEND_URL")
+    BACKEND_URL: str = os.getenv("BACKEND_URL")
+    MEDIA_BASE_URL: str = os.getenv("MEDIA_BASE_URL")
+
+    APP_ENV: str = os.getenv("APP_ENV", "development")
 
     class Config:
         env_file = ".env"

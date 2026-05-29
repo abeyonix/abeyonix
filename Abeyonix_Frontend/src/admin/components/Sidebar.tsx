@@ -12,6 +12,7 @@ import {
   LogOut,
   Menu,
   X,
+  Building2,
 } from "lucide-react";
 
 import { useAuth } from "@/context/AuthContext";
@@ -32,6 +33,12 @@ const menu = [
   { name: "Inventory", path: "/admin/inventory", icon: Box },
   { name: "Orders", path: "/admin/orders", icon: ShoppingCart },
   { name: "Payments", path: "/admin/payments", icon: CreditCard },
+
+  {
+    name: "Company Settings",
+    path: "/admin/company-settings",
+    icon: Building2,
+  },
 ];
 
 const Sidebar = () => {

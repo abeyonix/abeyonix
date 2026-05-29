@@ -238,7 +238,7 @@ const ProductDetailsPage = () => {
                   disabled={!inStock}
                   className="px-6 py-2 border border-primary text-primary rounded disabled:opacity-50"
                   onClick={() =>
-                    navigate(`/checkout?product_id=${product.id}&quantity=1`)
+                    navigate(`/checkout?product_id=${product.id}&quantity=${quantity}`)
                   }
                 >
                   Buy Now

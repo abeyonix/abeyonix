@@ -16,6 +16,8 @@ export interface CheckoutAddress {
   state_province: string;
   postal_code: string;
   country: string;
+  contact_name: string;
+  contact_phone: string;
   is_default: boolean;
 }
 
@@ -57,6 +59,10 @@ export interface PlaceOrderResponse {
 }
 
 // ----------------------------------------
+// User's order history
+// ----------------------------------------
+
+
 
 export interface UserOrderItemInfo {
   product_id: number
@@ -90,16 +96,96 @@ export interface UserOrderListResponse {
   total_orders: number
   orders: UserOrderWithItems[]
 }
+
+
 // ----------------------------------------
+// order details for user and admin
+// ----------------------------------------
+
+
+export interface ShippingAddressInfo {
+  address_id: number
+
+  address_type: string
+
+  address_line1: string
+  address_line2?: string
+
+  city: string
+  state_province: string
+  postal_code: string
+  country: string
+
+  contact_name: string
+  contact_phone: string
+
+  is_default: boolean
+}
+
+export interface OrderItemDetails {
+  product_id: number
+  product_name: string
+  sku: string
+
+  unit_price: number
+  quantity: number
+  total_price: number
+
+  primary_image?: string
+}
+
+export interface OrderDetailsResponse {
+  order_id: number
+  order_number: string
+
+  order_status: string
+  payment_status: string
+
+  subtotal_amount: number
+  tax_amount: number
+  shipping_amount: number
+  discount_amount: number
+  total_amount: number
+
+  created_at: string
+
+  tracking:OrderTrackingInfo[]
+
+  shipping_address?: ShippingAddressInfo
+
+  items: OrderItemDetails[]
+}
+
+
+
+// ----------------------------------------
+// initiate payment
+// ----------------------------------------
+
+
 
 export interface InitiatePaymentRequest {
   user_id: number;
-  amount: string; // Decimal → send as string
-  flow_type: "CART" | "BUY_NOW";
-  payload: Record<string, any>;
+  address_id: number;
+  product_id?: number;
+  quantity?: number;
 }
 
 export interface InitiatePaymentResponse {
-  transactionId: string;
-  paymentUrl: string;
+  razorpay_order_id: string;
+  amount: number;       // in paise
+  currency: string;
+  key_id: string;
+}
+
+
+
+// ----------------------------------------
+// verify payment
+// ----------------------------------------
+
+export interface VerifyPaymentRequest {
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
 }

@@ -47,6 +47,11 @@ const Header = () => {
   // const [cartLoading, setCartLoading] = useState(false);
   const cartRef = useRef<HTMLDivElement | null>(null);
 
+  const [otpPrefill, setOtpPrefill] = useState<{
+    email: string;
+    password: string;
+  } | null>(null);
+
   const navLinks = [
     { name: "Home", href: "/" },
     { name: "Services", href: "/services" },
@@ -72,6 +77,17 @@ const Header = () => {
 
   //   loadCart();
   // }, [cartOpen, user]);
+
+  const handleNotVerified = (email: string, password: string) => {
+    setOtpPrefill({ email, password });
+    setLoginOpen(false);
+    setRegisterOpen(true); // open register modal at OTP step
+  };
+
+  const handleRegisterClose = () => {
+    setRegisterOpen(false);
+    setOtpPrefill(null); // clear prefill on close
+  };
 
   const isActive = (href: string) => {
     if (href === "/") return location.pathname === "/";
@@ -426,8 +442,7 @@ const Header = () => {
 
           <button
             onClick={() => {
-              if (!user) setLoginOpen(true);
-              else window.location.href = "/cart";
+              window.location.href = "/cart";
             }}
             className={`relative flex flex-col items-center gap-1 ${
               isMobileActive("/cart") ? "text-drone-orange" : "text-gray-500"
@@ -494,6 +509,7 @@ const Header = () => {
           setLoginOpen(false);
           setForgotOpen(true);
         }}
+        onNotVerified={handleNotVerified}
       />
 
       <RegisterModal
@@ -503,6 +519,9 @@ const Header = () => {
           setRegisterOpen(false);
           setLoginOpen(true);
         }}
+        prefillEmail={otpPrefill?.email} // ✅ NEW
+        prefillPassword={otpPrefill?.password} // ✅ NEW
+        startAtOtp={!!otpPrefill}
       />
 
       <ForgotPasswordModal

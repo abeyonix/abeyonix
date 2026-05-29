@@ -59,6 +59,34 @@ class Order(Base):
 
 
 
+class PendingOrder(Base):
+    __tablename__ = "pending_orders"
+
+    id = Column(BigInteger, primary_key=True, default=generate_time_based_id)
+
+    user_id       = Column(BigInteger, nullable=False, index=True)
+    address_id    = Column(BigInteger, nullable=False)
+
+    # Buy Now fields (null = cart flow)
+    product_id    = Column(BigInteger, nullable=True)
+    quantity      = Column(Integer, nullable=True)
+
+    # Razorpay
+    razorpay_order_id = Column(String(100), unique=True, nullable=False, index=True)
+
+    # Snapshot of amounts so nothing can change mid-payment
+    subtotal      = Column(Numeric(10, 2), nullable=False)
+    shipping      = Column(Numeric(10, 2), nullable=False)
+    tax           = Column(Numeric(10, 2), nullable=False)
+    total_amount  = Column(Numeric(10, 2), nullable=False)
+
+    status        = Column(String(30), default="PENDING")  # PENDING | PAID | FAILED | EXPIRED
+
+    created_at    = Column(DateTime(timezone=True), server_default=func.now())
+
+
+
+
 
 class OrderItem(Base):
     __tablename__ = "order_items"
@@ -117,6 +145,11 @@ class OrderTracking(Base):
     status = Column(String(100), nullable=False)        # SHIPPED, OUT_FOR_DELIVERY, DELIVERED
     description = Column(String(300), nullable=True)    # Human readable message
     location = Column(String(200), nullable=True)       # Current location
+
+    # ✅ NEW — only filled when status = SHIPPED
+    tracking_id      = Column(String(100), nullable=True)   # e.g. "DTDC123456789IN"
+    carrier_name     = Column(String(100), nullable=True)   # e.g. "DTDC", "Delhivery", "BlueDart"
+    tracking_url     = Column(String(500), nullable=True)
 
     updated_at = Column(
         DateTime(timezone=True),

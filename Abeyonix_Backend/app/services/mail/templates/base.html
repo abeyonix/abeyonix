@@ -1,0 +1,104 @@
+<!-- app/services/mail/templates/base.html -->
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ subject }}</title>
+  </head>
+  <body
+    style="
+      margin: 0;
+      padding: 0;
+      background-color: #f4f4f4;
+      font-family: Arial, sans-serif;
+    "
+  >
+    <table width="100%" cellpadding="0" cellspacing="0">
+      <tr>
+        <td align="center" style="padding: 30px 10px">
+          <table
+            width="600"
+            cellpadding="0"
+            cellspacing="0"
+            style="
+              background: #ffffff;
+              border-radius: 10px;
+              overflow: hidden;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+            "
+          >
+            <!-- ═══════════════ HEADER / LOGO ═══════════════ -->
+            <tr>
+              <td
+                style="
+                  background-color: #dddde9;
+                  padding: 24px;
+                  text-align: center;
+                "
+              >
+                <img
+                  src="{{ media_url }}{{ company.logo_url }}"
+                  alt="{{ company.company_name }}"
+                  height="55"
+                  style="display: inline-block"
+                />
+              </td>
+            </tr>
+
+            <!-- ═══════════════ BODY CONTENT ═══════════════ -->
+            <tr>
+              <td
+                style="
+                  padding: 36px 40px;
+                  color: #333333;
+                  font-size: 15px;
+                  line-height: 1.6;
+                "
+              >
+                {% block content %}{% endblock %}
+              </td>
+            </tr>
+
+            <!-- ═══════════════ FOOTER ═══════════════ -->
+            <tr>
+              <td
+                style="
+                  background-color: #f8f8f8;
+                  padding: 20px 40px;
+                  border-top: 1px solid #eeeeee;
+                  font-size: 12px;
+                  color: #999999;
+                  text-align: center;
+                "
+              >
+                <strong style="color: #555">{{ company.company_name }}</strong
+                ><br />
+                {{ company.address_line1 }}, {{ company.city }}, {{
+                company.state }} - {{ company.postal_code }}, {{ company.country
+                }}<br />
+                <span>📞 {{ company.company_phone }}</span>
+                &nbsp;|&nbsp;
+                <span>✉️ {{ company.company_email }}</span>
+                {% if company.gst_number %}
+                <br />GSTIN: {{ company.gst_number }} {% endif %} {% if
+                company.website %} &nbsp;|&nbsp;
+                <a
+                  href="{{ company.website }}"
+                  style="color: #2563eb; text-decoration: none"
+                >
+                  {{ company.website }}
+                </a>
+                {% endif %}
+                <br /><br />
+                <span style="font-size: 11px; color: #bbb">
+                  This is an automated email. Please do not reply.
+                </span>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

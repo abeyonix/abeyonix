@@ -10,6 +10,8 @@ class UserAddressBase(BaseModel):
     state_province: str
     postal_code: str
     country: str
+    contact_name: str
+    contact_phone: str
     is_default: bool = False
 
 
@@ -25,6 +27,8 @@ class UserAddressUpdate(BaseModel):
     state_province: Optional[str] = None
     postal_code: Optional[str] = None
     country: Optional[str] = None
+    contact_name: Optional[str] = None
+    contact_phone: Optional[str] = None
     is_default: Optional[bool] = None
 
 

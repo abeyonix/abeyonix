@@ -61,6 +61,10 @@ export default function AdminOrders() {
     description: "",
     location: "",
     customStatus: "",
+
+    tracking_id: "",
+    carrier_name: "",
+    tracking_url: "",
   });
 
   const fetchOrders = async (pageNum = 1) => {
@@ -121,6 +125,10 @@ export default function AdminOrders() {
         status,
         description: trackingForm.description,
         location: trackingForm.location,
+
+        tracking_id: trackingForm.tracking_id,
+        carrier_name: trackingForm.carrier_name,
+        tracking_url: trackingForm.tracking_url,
       });
 
       setTrackingModal(null);
@@ -130,6 +138,10 @@ export default function AdminOrders() {
         description: "",
         location: "",
         customStatus: "",
+
+        tracking_id: "",
+        carrier_name: "",
+        tracking_url: "",
       });
       fetchOrders(page);
     } catch (err) {
@@ -245,6 +257,15 @@ Total Amount: ${formatPrice(order.total_amount)}
 
     return rangeWithDots;
   };
+
+  // Get already used statuses
+  const usedStatuses =
+    trackingModal?.tracking?.map((t) => t.status?.toUpperCase()) || [];
+
+  // Remove already updated statuses
+  const availableStatuses = COMMON_STATUSES.filter(
+    (status) => !usedStatuses.includes(status.toUpperCase()),
+  );
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -605,6 +626,9 @@ Total Amount: ${formatPrice(order.total_amount)}
                     description: "",
                     location: "",
                     customStatus: "",
+                    tracking_id: "",
+                    carrier_name: "",
+                    tracking_url: "",
                   });
                 }}
                 className="text-gray-400 hover:text-gray-600"
@@ -640,18 +664,71 @@ Total Amount: ${formatPrice(order.total_amount)}
                           >
                             {track.status}
                           </span>
+
                           <span className="text-xs text-gray-500">
                             {formatDate(track.updated_at)}
                           </span>
                         </div>
-                        <p className="text-sm text-gray-700 mb-1">
-                          {track.description}
-                        </p>
+
+                        {track.description && (
+                          <p className="text-sm text-gray-700 mb-2">
+                            {track.description}
+                          </p>
+                        )}
+
                         {track.location && (
-                          <p className="text-xs text-gray-500 flex items-center gap-1">
+                          <p className="text-xs text-gray-500 flex items-center gap-1 mb-2">
                             <MapPin size={12} />
                             {track.location}
                           </p>
+                        )}
+
+                        {/* SHIPPING DETAILS */}
+                        {(track.tracking_id ||
+                          track.carrier_name ||
+                          track.tracking_url) && (
+                          <div className="mt-3 p-3 bg-white border border-gray-200 rounded-lg space-y-2">
+                            {track.tracking_id && (
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="text-xs font-medium text-gray-500">
+                                  Tracking ID
+                                </span>
+
+                                <span className="text-sm font-semibold text-gray-800 break-all text-right">
+                                  {track.tracking_id}
+                                </span>
+                              </div>
+                            )}
+
+                            {track.carrier_name && (
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="text-xs font-medium text-gray-500">
+                                  Carrier
+                                </span>
+
+                                <span className="text-sm font-semibold text-gray-800 text-right">
+                                  {track.carrier_name}
+                                </span>
+                              </div>
+                            )}
+
+                            {track.tracking_url && (
+                              <div className="flex items-start justify-between gap-3">
+                                <span className="text-xs font-medium text-gray-500">
+                                  Tracking Link
+                                </span>
+
+                                <a
+                                  href={track.tracking_url}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="text-sm text-blue-600 hover:text-blue-800 underline break-all text-right"
+                                >
+                                  Open Tracking
+                                </a>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                     </div>
@@ -691,7 +768,7 @@ Total Amount: ${formatPrice(order.total_amount)}
                       className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
                     >
                       <option value="">Select Status</option>
-                      {COMMON_STATUSES.map((status) => (
+                      {availableStatuses.map((status) => (
                         <option key={status} value={status}>
                           {status.replace("_", " ")}
                         </option>
@@ -756,6 +833,67 @@ Total Amount: ${formatPrice(order.total_amount)}
                     />
                   </div>
 
+                  {trackingForm.status === "SHIPPED" && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tracking ID
+                        </label>
+
+                        <input
+                          type="text"
+                          placeholder="Enter tracking ID"
+                          value={trackingForm.tracking_id}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              tracking_id: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Carrier Name
+                        </label>
+
+                        <input
+                          type="text"
+                          placeholder="DTDC / Delhivery / BlueDart"
+                          value={trackingForm.carrier_name}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              carrier_name: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">
+                          Tracking URL
+                        </label>
+
+                        <input
+                          type="text"
+                          placeholder="https://..."
+                          value={trackingForm.tracking_url}
+                          onChange={(e) =>
+                            setTrackingForm({
+                              ...trackingForm,
+                              tracking_url: e.target.value,
+                            })
+                          }
+                          className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500"
+                        />
+                      </div>
+                    </>
+                  )}
+
                   <div className="flex gap-3 pt-2">
                     <button
                       onClick={() => {
@@ -765,6 +903,9 @@ Total Amount: ${formatPrice(order.total_amount)}
                           description: "",
                           location: "",
                           customStatus: "",
+                          tracking_id: "",
+                          carrier_name: "",
+                          tracking_url: "",
                         });
                       }}
                       className="flex-1 px-4 py-2.5 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"

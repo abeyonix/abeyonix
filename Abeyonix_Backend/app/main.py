@@ -8,7 +8,8 @@ from app.api.v1 import (
     auth, users, categories,
     sub_categories, attributes,
     product, shop, address, cart,
-    orders, payment, services, inquiry
+    orders, payment, services, inquiry,
+    company_settings, invoice, rating
 )
 
 Base.metadata.create_all(bind=engine)
@@ -20,7 +21,7 @@ app = FastAPI(
     version="1.0.0"
 )
 
-# app.mount("/media", StaticFiles(directory="media"), name="media")
+app.mount("/media", StaticFiles(directory="media"), name="media")
 
 
 # Add Startup Event
@@ -57,6 +58,9 @@ app.include_router(cart.router)
 app.include_router(orders.router)
 app.include_router(payment.router)
 app.include_router(inquiry.router)
+app.include_router(company_settings.router)
+app.include_router(invoice.router)
+app.include_router(rating.router)
 
 
 # Health Check

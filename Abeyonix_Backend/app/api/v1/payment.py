@@ -2,109 +2,138 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
 from decimal import Decimal
+import razorpay
 import uuid
 import json
 import httpx
 from app.core.config import *
 from app.utils.phonepe import *
 from app.db.session import get_db
-from app.models.orders import Order, OrderItem
+from app.models.users import User
+from app.models.address import UserAddress
+from app.models.product import Product, Pricing, Inventory
+from app.models.orders import Order, OrderItem, PendingOrder
 from app.models.cart import CartItem
 from app.models.payment import PaymentSession, Payment
 from app.schemas.payment import *
-from app.api.v1.orders import create_order_from_cart, create_order_from_buy_now
+from app.core.config import settings
 
 router = APIRouter(prefix="/api/v1", tags=["Payment"])
 
+RAZORPAY_KEY_ID = settings.RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET = settings.RAZORPAY_KEY_SECRET
 
-@router.post("/payment/initiate")
-async def initiate_payment(req: InitiatePaymentRequest, db: Session = Depends(get_db)):
-    try:
-        transaction_id = str(uuid.uuid4())
-
-        amount_in_paise = int(req.amount * 100)
-        # 1️⃣ store session first
-        session = PaymentSession(
-            transaction_id=transaction_id,
-            user_id=req.user_id,
-            flow_type=req.flow_type,
-            payload=req.payload ,
-            amount=amount_in_paise,
-        )
-        db.add(session)
-        db.commit()
-
-        # 2️⃣ call phonepe
-
-        payload = {
-            "merchantId": MERCHANT_ID,
-            "merchantTransactionId": transaction_id,
-            "merchantUserId": "USER_123",
-            "amount": amount_in_paise,  # paise
-            "redirectUrl": "http://192.168.1.7:8080/payment-status",
-            "redirectMode": "GET",
-            "callbackUrl": "https://appropriative-carie-unusuriously.ngrok-free.dev/api/v1/payment/callback",
-            "mobileNumber": "9999999999",
-            "paymentInstrument": {
-                "type": "PAY_PAGE"
-            },
-        }
-
-        base64_payload, x_verify = generate_x_verify(payload)
-
-        headers = {
-            "Content-Type": "application/json",
-            "X-VERIFY": x_verify,
-        }
-
-        async with httpx.AsyncClient() as client:
-            response = await client.post(
-                PHONEPE_BASE_URL + PAY_ENDPOINT,
-                json={"request": base64_payload},
-                headers=headers,
-            )
-
-        data = response.json()
-
-        if data.get("success"):
-            pay_url = data["data"]["instrumentResponse"]["redirectInfo"]["url"]
-            return {
-                "transactionId": transaction_id,
-                "paymentUrl": pay_url,
-            }
-        else:
-            raise HTTPException(400, detail=data)
-
-    except Exception as e:
-        raise HTTPException(500, str(e))
-    
+client = razorpay.Client(auth=(RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET))
 
 
 
-@router.post("/payment/callback")
-def payment_callback(response: dict, db: Session = Depends(get_db)):
 
-    transaction_id = response.get("transactionId")
+@router.post("/initiate-payment", response_model=InitiatePaymentResponse)
+def initiate_payment(
+    request: InitiatePaymentRequest,
+    db: Session = Depends(get_db)
+):
+    # ── Validate user ──────────────────────────────────────────────
+    user = db.query(User).filter(User.user_id == request.user_id).first()
+    if not user:
+        raise HTTPException(404, "User not found")
 
-    session = db.query(PaymentSession).filter_by(
-        transaction_id=transaction_id
+    # ── Validate address ───────────────────────────────────────────
+    address = db.query(UserAddress).filter(
+        UserAddress.address_id == request.address_id,
+        UserAddress.user_id    == request.user_id
     ).first()
+    if not address:
+        raise HTTPException(400, "Invalid address")
 
-    if not session:
-        raise HTTPException(404, "Session not found")
+    # ── Calculate subtotal (NO stock deduction here) ───────────────
+    subtotal = Decimal("0.00")
 
-    if session.status == "SUCCESS":
-        return {"message": "Already processed"}
+    if request.product_id is None:
+        # Cart flow
+        cart_items = db.query(CartItem).filter(
+            CartItem.user_id  == request.user_id,
+            CartItem.is_active == True
+        ).all()
 
-    # verify phonepe success here
+        if not cart_items:
+            raise HTTPException(400, "Cart is empty")
 
-    session.status = "SUCCESS"
+        for item in cart_items:
+            # Just check stock exists — don't deduct yet
+            inventory = db.query(Inventory).filter(
+                Inventory.product_id == item.product_id
+            ).first()
+            if not inventory or inventory.quantity < item.quantity:
+                raise HTTPException(
+                    400, f"Insufficient stock for {item.product.name}"
+                )
+            subtotal += item.unit_price * item.quantity
 
-    if session.flow_type == "CART":
-        create_order_from_cart(session, db)
+    else:
+        # Buy Now flow
+        product = db.query(Product).filter(
+            Product.id == request.product_id
+        ).first()
+        if not product:
+            raise HTTPException(404, "Product not found")
 
-    elif session.flow_type == "BUY_NOW":
-        create_order_from_buy_now(session, db)
+        pricing = db.query(Pricing).filter(
+            Pricing.product_id == product.id
+        ).first()
+        if not pricing:
+            raise HTTPException(400, "Pricing not found")
 
+        inventory = db.query(Inventory).filter(
+            Inventory.product_id == product.id
+        ).first()
+        if not inventory or inventory.quantity < request.quantity:
+            raise HTTPException(400, "Insufficient stock")
+
+        unit_price = pricing.discount_price or pricing.price
+        subtotal   = unit_price * request.quantity
+
+    # ── Totals ─────────────────────────────────────────────────────
+    tax          = subtotal * Decimal("0.02")
+    shipping     = Decimal("0.00")
+    total_amount = subtotal + tax + shipping
+    amount_paise = int(total_amount * 100)          # Razorpay needs paise
+
+    # ── Create Razorpay order ──────────────────────────────────────
+    rz_order = client.order.create({
+        "amount":   amount_paise,
+        "currency": "INR",
+        "payment_capture": 1                        # auto-capture
+    })
+
+    # ── Save PendingOrder ──────────────────────────────────────────
+    pending = PendingOrder(
+        user_id           = request.user_id,
+        address_id        = request.address_id,
+        product_id        = request.product_id,
+        quantity          = request.quantity,
+        razorpay_order_id = rz_order["id"],
+        subtotal          = subtotal,
+        shipping          = shipping,
+        tax               = tax,
+        total_amount      = total_amount,
+        status            = "PENDING"
+    )
+    db.add(pending)
     db.commit()
-    return {"message": "Order created"}
+
+    return {
+        "razorpay_order_id": rz_order["id"],
+        "amount":            amount_paise,
+        "currency":          "INR",
+        "key_id":            RAZORPAY_KEY_ID
+    }
+
+
+
+
+
+
+
+
+

@@ -13,11 +13,15 @@ interface Props {
   open: boolean;
   onClose: () => void;
   onBackToLogin: () => void;
+
+  prefillEmail?:    string;
+  prefillPassword?: string;
+  startAtOtp?:      boolean;
 }
 
 const OTP_DURATION = 10 * 60; // 10 minutes (seconds)
 
-const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
+const RegisterModal = ({ open, onClose, onBackToLogin, prefillEmail, prefillPassword, startAtOtp=false }: Props) => {
   const [step, setStep] = useState<"register" | "otp">("register");
   const [errors, setErrors] = useState<any>({});
   const { loginUser } = useAuth();
@@ -43,6 +47,17 @@ const RegisterModal = ({ open, onClose, onBackToLogin }: Props) => {
     if (open) window.addEventListener("keydown", handleEsc);
     return () => window.removeEventListener("keydown", handleEsc);
   }, [open, onClose]);
+
+  useEffect(() => {
+    if (open && startAtOtp && prefillEmail) {
+      setForm((prev) => ({
+        ...prev,
+        email:    prefillEmail,
+        password: prefillPassword ?? "",
+      }));
+      setStep("otp");
+    }
+  }, [open, startAtOtp, prefillEmail, prefillPassword]);
 
     useEffect(() => {
     if (!open) {

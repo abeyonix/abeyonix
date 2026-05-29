@@ -3,9 +3,11 @@ import {
   CheckoutPageResponse, 
   InitiatePaymentRequest, 
   InitiatePaymentResponse, 
+  OrderDetailsResponse, 
   PlaceOrderRequest, 
-  PlaceOrderResponse ,
-  UserOrderListResponse 
+  PlaceOrderResponse,
+  UserOrderListResponse ,
+  VerifyPaymentRequest
 } from "@/types/order";
 
 
@@ -30,17 +32,23 @@ export const getCheckout = async (params: {
 };
 
 // --------------------------------------------------------
-export const placeOrder = async (
-  payload: PlaceOrderRequest
-): Promise<PlaceOrderResponse> => {
-  try {
-    const response = await api.post<PlaceOrderResponse>("/orders/place-order", payload)
+// Place order (after successful payment)
+// --------------------------------------------------------
+// export const placeOrder = async (
+//   payload: PlaceOrderRequest
+// ): Promise<PlaceOrderResponse> => {
+//   try {
+//     const response = await api.post<PlaceOrderResponse>("/orders/place-order", payload)
 
-    return response.data
-  } catch (error: any) {
-    throw error?.response?.data?.detail || "Failed to place order"
-  }
-}
+//     return response.data
+//   } catch (error: any) {
+//     throw error?.response?.data?.detail || "Failed to place order"
+//   }
+// }
+
+// =====================================================
+// GET USER ORDERS (For Order History page)
+// =====================================================
 
 
 
@@ -57,6 +65,32 @@ export const getUserOrders = async (
     throw error?.response?.data?.detail || "Failed to fetch user orders"
   }
 }
+
+
+// =====================================================
+// GET ORDER DETAILS (for both user and admin)
+// =====================================================
+
+export const getOrderDetails = async (
+  orderIdentifier: string | number
+): Promise<OrderDetailsResponse> => {
+  try {
+    const response = await api.get<OrderDetailsResponse>(
+      `/orders/${orderIdentifier}`
+    )
+
+    return response.data
+  } catch (error: any) {
+    throw (
+      error?.response?.data?.detail ||
+      "Failed to fetch order details"
+    )
+  }
+}
+
+// =====================================================
+// GET ADMIN ORDERS (with pagination and search)
+// =====================================================
 
 
 
@@ -84,6 +118,10 @@ export const getAdminOrders = async (params?: {
 };
 
 
+// =====================================================
+// UPDATE ORDER TRACKING (Admin)
+// =====================================================  
+
 
 
 export const updateOrderTracking = async (payload: {
@@ -91,6 +129,10 @@ export const updateOrderTracking = async (payload: {
   status: string;
   description?: string;
   location?: string;
+
+  tracking_id?: string;
+  carrier_name?: string;
+  tracking_url?: string;
 }): Promise<any> => {
   try {
     const response = await api.post(
@@ -108,15 +150,56 @@ export const updateOrderTracking = async (payload: {
 };
 
 // --------------------------------------------------------
+// Initiate Razorpay payment
+// --------------------------------------------------------
 
 
 export const initiatePayment = async (
   payload: InitiatePaymentRequest
 ): Promise<InitiatePaymentResponse> => {
-  const { data } = await api.post<InitiatePaymentResponse>(
-    "/orders/payment/initiate",
-    payload
-  );
+  try {
+    const response = await api.post<InitiatePaymentResponse>(
+      "/initiate-payment",
+      payload
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data?.detail || "Failed to initiate payment";
+  }
+};
 
-  return data;
+export const verifyPayment = async (
+  payload: VerifyPaymentRequest
+): Promise<PlaceOrderResponse> => {
+  try {
+    const response = await api.post<PlaceOrderResponse>(
+      "/orders/verify-payment",
+      payload
+    );
+    return response.data;
+  } catch (error: any) {
+    throw error?.response?.data?.detail || "Payment verification failed";
+  }
+};
+
+
+// --------------------------------------------------------
+// Cancel Order (User)
+// --------------------------------------------------------
+
+export const cancelOrder = async (
+  orderId: number
+): Promise<any> => {
+  try {
+    const response = await api.post(
+      `/orders/cancel-order/${orderId}`
+    );
+
+    return response.data;
+  } catch (error: any) {
+    throw (
+      error?.response?.data?.detail ||
+      "Failed to cancel order"
+    );
+  }
 };

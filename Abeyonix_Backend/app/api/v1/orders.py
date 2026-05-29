@@ -1,26 +1,43 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query as FastQuery
 from sqlalchemy.orm import Session, joinedload
 from sqlalchemy.sql import func
+from sqlalchemy import or_
 from decimal import Decimal
+import hmac, hashlib
 import uuid
 import json
 from fastapi import BackgroundTasks
 from app.core.config import *
 from app.utils.phonepe import *
 from app.utils.order_no_generator import *
-from app.db.session import get_db
-from app.models.orders import Order, OrderItem, OrderTracking
+from app.db.session import get_db, SessionLocal
+from app.models.orders import Order, OrderItem, OrderTracking, PendingOrder
 from app.models.cart import CartItem
 from app.models.users import User
 from app.models.address import UserAddress
 from app.models.product import Inventory, ProductMedia, Pricing, Product
-from app.models.payment import PaymentSession, Payment
+from app.models.company_settings import CompanySettings
 from app.schemas.orders import *
 from app.utils.email_templates import order_notification_email
 from app.services.user_service import get_admin_emails
 from app.utils.email_service import send_email
+from app.core.config import Settings
+from app.services.mail.mail_triggers import( send_order_delivered_email, send_order_placed_email, 
+                                            send_order_confirmed_email, 
+                                            send_order_shipped_email,)
+from app.models.address import UserAddress
+from app.services.invoice.invoice_service import generate_invoice_pdf
+
 
 router = APIRouter(prefix="/api/v1/orders", tags=["Orders"])
+
+RAZORPAY_KEY_ID = settings.RAZORPAY_KEY_ID
+RAZORPAY_KEY_SECRET = settings.RAZORPAY_KEY_SECRET
+
+CANCEL_ALLOWED_STATUSES = [
+    "PLACED",
+    "CONFIRMED",
+]
 
 @router.get("/checkout-page", response_model=CheckoutPageResponse)
 def get_checkout_page_data(
@@ -46,8 +63,8 @@ def get_checkout_page_data(
     for addr in addresses:
         address_data.append({
             "address_id": addr.address_id,
-            # "full_name": addr.full_name,
-            # "phone": addr.phone,
+            "contact_name": addr.contact_name,
+            "contact_phone": addr.contact_phone,
             "address_line1": addr.address_line1,
             "address_line2": addr.address_line2,
             "city": addr.city,
@@ -123,8 +140,8 @@ def get_checkout_page_data(
         })
 
     # 3️⃣ Totals
-    tax = subtotal * Decimal("0.00")
-    shipping = Decimal("50.00")
+    tax = subtotal * Decimal("0.02")
+    shipping = Decimal("0.00")
     total_amount = subtotal + tax + shipping
 
     return {
@@ -153,6 +170,191 @@ def send_order_emails(db: Session, order, order_items, user):
                 subject=f"New Order Received - {order.order_number}",
                 html_content=html_content
             )
+
+
+
+
+
+@router.post("/verify-payment", response_model=PlaceOrderResponse)
+def verify_payment(
+    request: VerifyPaymentRequest,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    # ── 1. Verify signature (MOST IMPORTANT STEP) ──────────────────
+    body        = f"{request.razorpay_order_id}|{request.razorpay_payment_id}"
+    expected_sig = hmac.new(
+        RAZORPAY_KEY_SECRET.encode(),
+        body.encode(),
+        hashlib.sha256
+    ).hexdigest()
+
+    if expected_sig != request.razorpay_signature:
+        raise HTTPException(400, "Payment verification failed — invalid signature")
+
+    # ── 2. Load PendingOrder ───────────────────────────────────────
+    pending = db.query(PendingOrder).filter(
+        PendingOrder.razorpay_order_id == request.razorpay_order_id
+    ).first()
+
+    if not pending:
+        raise HTTPException(404, "Order session not found")
+
+    if pending.status != "PENDING":
+        raise HTTPException(400, f"Order already processed: {pending.status}")
+
+    user = db.query(User).filter(User.user_id == pending.user_id).first()
+
+    # ── 3. Re-check stock + deduct (with row lock) ─────────────────
+    order_items = []
+
+    if pending.product_id is None:
+        # Cart flow
+        cart_items = db.query(CartItem).filter(
+            CartItem.user_id   == pending.user_id,
+            CartItem.is_active == True
+        ).all()
+
+        if not cart_items:
+            pending.status = "FAILED"
+            db.commit()
+            raise HTTPException(400, "Cart is empty")
+
+        for item in cart_items:
+            inventory = db.query(Inventory).filter(
+                Inventory.product_id == item.product_id
+            ).with_for_update().first()
+
+            if not inventory or inventory.quantity < item.quantity:
+                pending.status = "FAILED"
+                db.commit()
+                raise HTTPException(
+                    400,
+                    f"Stock changed during payment for {item.product.name}. "
+                    "A refund will be issued within 5–7 business days."
+                )
+
+            # inventory.quantity -= item.quantity
+            line_total = item.unit_price * item.quantity
+
+            order_items.append({
+                "product_id":   item.product_id,
+                "product_name": item.product.name,
+                "sku":          item.product.sku,
+                "unit_price":   item.unit_price,
+                "quantity":     item.quantity,
+                "total_price":  line_total
+            })
+
+    else:
+        # Buy Now flow
+        product = db.query(Product).filter(
+            Product.id == pending.product_id
+        ).first()
+
+        pricing = db.query(Pricing).filter(
+            Pricing.product_id == product.id
+        ).first()
+
+        inventory = db.query(Inventory).filter(
+            Inventory.product_id == product.id
+        ).with_for_update().first()
+
+        if not inventory or inventory.quantity < pending.quantity:
+            pending.status = "FAILED"
+            db.commit()
+            raise HTTPException(
+                400,
+                "Stock changed during payment. "
+                "A refund will be issued within 5–7 business days."
+            )
+
+        # inventory.quantity -= pending.quantity
+        unit_price = pricing.discount_price or pricing.price
+        line_total = unit_price * pending.quantity
+
+        order_items.append({
+            "product_id":   product.id,
+            "product_name": product.name,
+            "sku":          product.sku,
+            "unit_price":   unit_price,
+            "quantity":     pending.quantity,
+            "total_price":  line_total
+        })
+
+    # ── 4. Create Order ────────────────────────────────────────────
+    order = Order(
+        user_id             = pending.user_id,
+        order_number        = generate_order_number(),
+        subtotal_amount     = pending.subtotal,
+        discount_amount     = Decimal("0.00"),
+        tax_amount          = pending.tax,
+        shipping_amount     = pending.shipping,
+        total_amount        = pending.total_amount,
+        order_status        = "PLACED",
+        payment_status      = "PAID",               # ← PAID, not PENDING
+        shipping_address_id = pending.address_id
+    )
+    db.add(order)
+    db.flush()
+
+    # ── 5. Order Items ─────────────────────────────────────────────
+    for item in order_items:
+        db.add(OrderItem(
+            order_id     = order.id,
+            product_id   = item["product_id"],
+            product_name = item["product_name"],
+            sku          = item["sku"],
+            unit_price   = item["unit_price"],
+            quantity     = item["quantity"],
+            total_price  = item["total_price"]
+        ))
+
+    # ── 6. Tracking ────────────────────────────────────────────────
+    db.add(OrderTracking(
+        order_id    = order.id,
+        status      = "PLACED",
+        description = "Order placed and payment confirmed"
+    ))
+
+    # ── 7. Clear Cart ──────────────────────────────────────────────
+    if pending.product_id is None:
+        db.query(CartItem).filter(
+            CartItem.user_id   == pending.user_id,
+            CartItem.is_active == True
+        ).update({"is_active": False})
+
+    # ── 8. Mark pending order as PAID ──────────────────────────────
+    pending.status = "PAID"
+
+    db.commit()
+
+    # ── 9. Fetch address for email ─────────────────────────────────────────────
+    address = db.query(UserAddress).filter(
+        UserAddress.address_id == pending.address_id
+    ).first()
+
+    # ── 10. Send customer email ────────────────────────────────────────────────
+    background_tasks.add_task(
+        send_order_placed_email, db, order, order_items, user, address
+    )
+
+    # ── 11. Send admin email (your existing one) ───────────────────────────────
+    background_tasks.add_task(
+        send_order_emails, db, order, order_items, user
+    )
+
+    return {
+        "order_id":     order.id,
+        "order_number": order.order_number,
+        "total_amount": order.total_amount,
+        "order_status": order.order_status
+    }
+
+
+
+
+
 
 @router.post("/place-order", response_model=PlaceOrderResponse)
 def place_order(
@@ -334,209 +536,75 @@ def place_order(
 # --------------------------------------------------
 
 
-def create_order_from_cart(session: PaymentSession, db: Session):
-    payload = session.payload
-    user_id = session.user_id
-    shipping_address_id = payload["shipping_address_id"]
 
-    # 1️⃣ Get all active cart items
-    cart_items = db.query(CartItem).filter(
-        CartItem.user_id == user_id,
-        CartItem.is_active == True
-    ).all()
 
-    if not cart_items:
-        raise HTTPException(400, "Cart is empty")
 
-    subtotal = Decimal("0.00")
-    order_items_data = []
 
-    # 2️⃣ Stock check + calculation
-    for item in cart_items:
-        inventory = db.query(Inventory).filter(
-            Inventory.product_id == item.product_id
-        ).first()
 
-        if not inventory or inventory.quantity < item.quantity:
-            raise HTTPException(
-                400,
-                f"Insufficient stock for product {item.product.name}"
-            )
 
-        line_total = item.quantity * item.unit_price
-        subtotal += line_total
 
-        order_items_data.append({
-            "product_id": item.product_id,
-            "product_name": item.product.name,
-            "sku": item.product.sku,
-            "unit_price": item.unit_price,
-            "quantity": item.quantity,
-            "total_price": line_total,
-        })
+@router.get("/{order_identifier}", response_model=OrderDetailsResponse)
+def get_order_details(
+    order_identifier: str,
+    db: Session = Depends(get_db)
+):
 
-    # 3️⃣ Calculate final amounts (dummy logic for now)
-    discount = Decimal("0.00")
-    tax = subtotal * Decimal("0.05")  # 5% tax example
-    shipping = Decimal("50.00")
+    # =====================================================
+    # GET ORDER USING:
+    # 1. ORDER ID
+    # 2. ORDER NUMBER
+    # =====================================================
 
-    total_amount = subtotal - discount + tax + shipping
+    if order_identifier.isdigit():
 
-    # 4️⃣ Create Order
-    order = Order(
-        user_id=user_id,
-        order_number=str(uuid.uuid4())[:10].upper(),
-        subtotal_amount=subtotal,
-        discount_amount=discount,
-        tax_amount=tax,
-        shipping_amount=shipping,
-        total_amount=total_amount,
-        shipping_address_id=shipping_address_id,
-    )
-
-    db.add(order)
-    db.flush()  # get order.id before commit
-
-    # 5️⃣ Create Order Items + Reduce Inventory
-    for data in order_items_data:
-        order_item = OrderItem(
-            order_id=order.id,
-            **data
+        # Search using ORDER ID
+        order = (
+            db.query(Order)
+            .filter(Order.id == int(order_identifier))
+            .first()
         )
-        db.add(order_item)
 
-        # Reduce stock
-        inventory = db.query(Inventory).filter(
-            Inventory.product_id == data["product_id"]
-        ).first()
-        inventory.quantity -= data["quantity"]
+    else:
 
-    # 6️⃣ Clear cart
-    for item in cart_items:
-        item.is_active = False
+        # Search using ORDER NUMBER
+        order = (
+            db.query(Order)
+            .filter(Order.order_number == order_identifier)
+            .first()
+        )
 
-    db.commit()
-    db.refresh(order)
-
-    payment = Payment(
-        order_id=order.id,
-        payment_method="UPI",
-        payment_gateway="PHONEPE",
-        transaction_id=session.transaction_id,
-        amount=session.amount,
-        payment_status="SUCCESS",
-        paid_at=datetime.utcnow()
-    )
-    db.add(payment)
-
-    order.payment_status = "SUCCESS"
-
-    return {
-        "order_id": order.id,
-        "order_number": order.order_number,
-        "total_amount": order.total_amount,
-        "items": order.items
-    }
-
-
-def create_order_from_buy_now(session: PaymentSession, db: Session):
-    payload = session.payload
-    user_id = session.user_id
-    shipping_address_id = payload["shipping_address_id"]
-    product_id = payload["product_id"]
-    quantity = payload["quantity"]
-
-    # 1️⃣ Get product
-    product = db.query(Product).filter(Product.id == product_id).first()
-    if not product:
-        raise HTTPException(404, "Product not found")
-
-    # 2️⃣ Check inventory
-    inventory = db.query(Inventory).filter(
-        Inventory.product_id == product_id
-    ).first()
-
-    if not inventory or inventory.quantity < quantity:
-        raise HTTPException(400, "Insufficient stock")
-
-    # 3️⃣ Calculate amounts
-    unit_price = product.price
-    subtotal = unit_price * quantity
-
-    discount = Decimal("0.00")
-    tax = subtotal * Decimal("0.00")
-    shipping = Decimal("50.00")
-    total_amount = subtotal - discount + tax + shipping
-
-    # 4️⃣ Create Order
-    order = Order(
-        user_id=user_id,
-        order_number=str(uuid.uuid4())[:10].upper(),
-        subtotal_amount=subtotal,
-        discount_amount=discount,
-        tax_amount=tax,
-        shipping_amount=shipping,
-        total_amount=total_amount,
-        shipping_address_id=shipping_address_id,
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found"
+        )
+    
+    # =====================================================
+    # GET ORDER TRACKING HISTORY
+    # =====================================================
+    
+    tracking_history = (
+        db.query(OrderTracking)
+        .filter(OrderTracking.order_id == order.id)
+        .order_by(OrderTracking.updated_at.desc())
+        .all()
     )
 
-    db.add(order)
-    db.flush()
+    # =====================================================
+    # GET SHIPPING ADDRESS
+    # =====================================================
 
-    # 5️⃣ Create single Order Item
-    order_item = OrderItem(
-        order_id=order.id,
-        product_id=product.id,
-        product_name=product.name,
-        sku=product.sku,
-        unit_price=unit_price,
-        quantity=quantity,
-        total_price=subtotal,
-    )
-    db.add(order_item)
-
-    # 6️⃣ Reduce inventory
-    inventory.quantity -= quantity
-
-    db.commit()
-    db.refresh(order)
-
-    payment = Payment(
-        order_id=order.id,
-        payment_method="UPI",
-        payment_gateway="PHONEPE",
-        transaction_id=session.transaction_id,
-        amount=session.amount,
-        payment_status="SUCCESS",
-        paid_at=datetime.utcnow()
-    )
-    db.add(payment)
-
-    order.payment_status = "SUCCESS"
-
-    return {
-        "order_id": order.id,
-        "order_number": order.order_number,
-        "total_amount": order.total_amount,
-        "items": order.items
-    }
-
-
-
-
-
-
-@router.get("/{order_id}", response_model=OrderDetailsResponse)
-def get_order_details(order_id: int, db: Session = Depends(get_db)):
-
-    order = (
-        db.query(Order)
-        .filter(Order.id == order_id)
+    shipping_address = (
+        db.query(UserAddress)
+        .filter(
+            UserAddress.address_id == order.shipping_address_id
+        )
         .first()
     )
 
-    if not order:
-        raise HTTPException(404, "Order not found")
+    # =====================================================
+    # ORDER ITEMS
+    # =====================================================
 
     item_responses = []
 
@@ -561,20 +629,34 @@ def get_order_details(order_id: int, db: Session = Depends(get_db)):
             "primary_image": primary_image
         })
 
+    # =====================================================
+    # RETURN RESPONSE
+    # =====================================================
+
     return {
         "order_id": order.id,
         "order_number": order.order_number,
+
         "order_status": order.order_status,
         "payment_status": order.payment_status,
+
         "subtotal_amount": order.subtotal_amount,
         "tax_amount": order.tax_amount,
         "shipping_amount": order.shipping_amount,
         "discount_amount": order.discount_amount,
         "total_amount": order.total_amount,
-        "created_at": order.created_at,
-        "items": item_responses
-    }
 
+        "created_at": order.created_at,
+
+        # ✅ TRACKING HISTORY
+        "tracking": tracking_history,
+        # ✅ SHIPPING ADDRESS
+        "shipping_address": shipping_address,
+
+        # ✅ ITEMS
+        "items": item_responses,
+
+    }
 
 
 
@@ -632,7 +714,10 @@ def get_user_orders(user_id: int, db: Session = Depends(get_db)):
             "status": row.status,
             "description": row.description,
             "location": row.location,
-            "updated_at": row.updated_at
+            "updated_at": row.updated_at,
+            "tracking_id": row.tracking_id,
+            "carrier_name": row.carrier_name,
+            "tracking_url": row.tracking_url
         })
 
     order_list = []
@@ -735,7 +820,10 @@ def get_all_orders(
             "status": row.status,
             "description": row.description,
             "location": row.location,
-            "updated_at": row.updated_at
+            "updated_at": row.updated_at,
+            "tracking_id": row.tracking_id,
+            "carrier_name": row.carrier_name,
+            "tracking_url": row.tracking_url
         })
 
     # ================= BUILD RESPONSE =================
@@ -794,11 +882,123 @@ def get_all_orders(
 
 
 
+def _handle_confirmed(db: Session, background_tasks: BackgroundTasks, order):
+    """
+    Runs when admin sets status → CONFIRMED:
+      1. Deduct stock (with row lock)
+      2. Generate invoice PDF
+      3. Send confirmation email
+    """
+
+    # ── 1. Fetch order items ───────────────────────────────────────
+    db_items = db.query(OrderItem).filter(
+        OrderItem.order_id == order.id
+    ).all()
+
+    order_items_list = []
+
+    for item in db_items:
+        # ── 2. Deduct stock with row lock ──────────────────────────
+        inventory = db.query(Inventory).filter(
+            Inventory.product_id == item.product_id
+        ).with_for_update().first()
+
+        if not inventory or inventory.quantity < item.quantity:
+            raise HTTPException(
+                status_code=400,
+                detail=f"Insufficient stock for '{item.product_name}'. "
+                       "Cannot confirm order."
+            )
+
+        inventory.quantity -= item.quantity
+
+        order_items_list.append({
+            "product_id":   item.product_id,
+            "product_name": item.product_name,
+            "sku":          item.sku,
+            "unit_price":   item.unit_price,
+            "quantity":     item.quantity,
+            "total_price":  item.total_price,
+        })
+
+    db.flush()  # flush inventory changes before generating invoice
+
+    # ── 3. Fetch user + address + company ──────────────────────────
+    user    = db.query(User).filter(User.user_id == order.user_id).first()
+    address = db.query(UserAddress).filter(
+        UserAddress.address_id == order.shipping_address_id
+    ).first()
+    company = db.query(CompanySettings).first()
+
+    # ── 4. Generate invoice PDF and save to DB ─────────────────────
+    invoice = generate_invoice_pdf(
+        db          = db,
+        order       = order,
+        order_items = order_items_list,
+        user        = user,
+        address     = address,
+        company     = company,
+    )
+
+    # ── 5. Queue confirmation email ────────────────────────────────
+    background_tasks.add_task(
+        send_order_confirmed_email, db, order, user, invoice
+    )
+
+
+def handle_confirmed_background(order_id: int):
+    db = SessionLocal()
+
+    try:
+        order = db.query(Order).filter(Order.id == order_id).first()
+
+        if order:
+            _handle_confirmed(db, order)
+
+        db.commit()
+
+    except Exception as e:
+        db.rollback()
+        print("Confirm background error:", e)
+
+    finally:
+        db.close()
+
+
+
+# ── add this helper alongside _handle_confirmed ────────────────────────────
+def _handle_shipped(db: Session, background_tasks: BackgroundTasks, order, tracking):
+    """Runs when admin sets status → SHIPPED"""
+
+    user    = db.query(User).filter(User.user_id == order.user_id).first()
+    address = db.query(UserAddress).filter(
+        UserAddress.address_id == order.shipping_address_id
+    ).first()
+
+    background_tasks.add_task(
+        send_order_shipped_email, db, order, user, address, tracking
+    )
+
+
+def _handle_delivered(db: Session, background_tasks: BackgroundTasks, order):
+    """Runs when admin sets status → DELIVERED"""
+
+    user    = db.query(User).filter(User.user_id == order.user_id).first()
+    address = db.query(UserAddress).filter(
+        UserAddress.address_id == order.shipping_address_id
+    ).first()
+
+    background_tasks.add_task(
+        send_order_delivered_email, db, order, user, address
+    )
+
+
 
 
 @router.post("/update-tracking", status_code=200)
 def update_order_tracking(
     request: UpdateOrderTrackingRequest,
+    background_tasks: BackgroundTasks,
     db: Session = Depends(get_db)
 ):
     # 🔍 Check order exists
@@ -809,21 +1009,102 @@ def update_order_tracking(
 
     # 📝 Add tracking record
     tracking = OrderTracking(
-        order_id=request.order_id,
-        status=request.status,
-        description=request.description,
-        location=request.location
-    )
+    order_id=request.order_id,
+    status=request.status,
+    description=request.description,
+    location=request.location,
+
+    tracking_id=request.tracking_id,
+    carrier_name=request.carrier_name,
+    tracking_url=request.tracking_url
+)
 
     db.add(tracking)
+    db.flush()   # ← get tracking.id + updated_at before commit
 
     # 🔄 Update order status (latest status)
     order.order_status = request.status
+
+    # ── Handle CONFIRMED specifically ─────────────────────────────
+    if request.status and request.status.strip().lower() in [
+            "confirmed",
+            "confirm",
+        ]:
+        # _handle_confirmed(db, background_tasks, order)
+        
+        # background_tasks.add_task(
+        #     handle_confirmed_background,
+        #     order.id
+        # )
+
+        background_tasks.add_task(
+            _handle_confirmed,
+            db,
+            background_tasks,
+            order
+        )
+    elif request.status == "SHIPPED":
+        _handle_shipped(db, background_tasks, order, tracking)
+    
+    elif request.status == "DELIVERED":
+        _handle_delivered(db, background_tasks, order)
 
     db.commit()
 
     return {
         "message": "Order tracking updated successfully",
+        "order_id": order.id,
+        "current_status": order.order_status
+    }
+
+
+
+
+@router.post("/cancel-order/{order_id}", status_code=200)
+def cancel_order(
+    order_id: int,
+    db: Session = Depends(get_db)
+):
+    # 🔍 Find order
+    order = db.query(Order).filter(Order.id == order_id).first()
+
+    if not order:
+        raise HTTPException(
+            status_code=404,
+            detail="Order not found"
+        )
+
+    # ❌ Already cancelled
+    if order.order_status == "CANCELLED":
+        raise HTTPException(
+            status_code=400,
+            detail="Order already cancelled"
+        )
+
+    # ❌ Cancellation not allowed
+    if order.order_status not in CANCEL_ALLOWED_STATUSES:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Order cannot be cancelled after '{order.order_status}' status"
+        )
+
+    # ✅ Update order status
+    order.order_status = "CANCELLED"
+
+    # 📝 Add tracking history
+    tracking = OrderTracking(
+        order_id=order.id,
+        status="CANCELLED",
+        description="Order cancelled by customer",
+        location=None
+    )
+
+    db.add(tracking)
+
+    db.commit()
+
+    return {
+        "message": "Order cancelled successfully",
         "order_id": order.id,
         "current_status": order.order_status
     }

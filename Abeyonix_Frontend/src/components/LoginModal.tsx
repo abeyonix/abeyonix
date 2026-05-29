@@ -3,19 +3,27 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createPortal } from "react-dom";
 import { toast } from "sonner";
-import { login } from "@/api/auth";
+import { login, resendRegistrationOtp } from "@/api/auth";
 import { useAuth } from "@/context/AuthContext";
 import { set } from "date-fns";
 import { useCart } from "@/context/CartContext";
+import { OverlayLoader } from "@/components/Loader";
 
 interface Props {
   open: boolean;
   onClose: () => void;
   onSignUp: () => void;
   onForgotPassword: () => void;
+  onNotVerified?: (email: string, password: string) => void;
 }
 
-const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
+const LoginModal = ({
+  open,
+  onClose,
+  onSignUp,
+  onForgotPassword,
+  onNotVerified,
+}: Props) => {
   const { loginUser } = useAuth();
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
@@ -48,8 +56,6 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
 
   if (!open) return null;
 
-  
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -70,7 +76,6 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
         },
       });
 
-
       toast.success(`Welcome back, ${res.user_name}`);
 
       // ✅ CHECK REDIRECT
@@ -90,7 +95,27 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
 
       onClose();
     } catch (err: any) {
-      setError(err?.response?.data?.detail || "Login failed");
+      const detail = err?.response?.data?.detail;
+
+      // ── Handle unverified account ──────────────────────────────────
+      if (detail?.code === "NOT_VERIFIED") {
+        try {
+          await resendRegistrationOtp({ email: detail.email });
+          toast.info("Please verify your account. A fresh OTP has been sent.");
+        } catch {
+          toast.info("Please verify your account.");
+        }
+        onClose();
+        onNotVerified?.(detail.email, password);
+        return; // ← stop here, don't call setError
+      }
+
+      // ── All other errors — always a displayable string ─────────────
+      setError(
+        typeof detail === "string"
+          ? detail
+          : (detail?.message ?? "Login failed"),
+      );
     } finally {
       setLoading(false); // ✅ FIX
     }
@@ -98,18 +123,15 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
 
   return createPortal(
     <div className="fixed inset-0 z-[9999] flex items-center justify-center">
-      {/* Overlay (click outside closes modal) */}
       <div
         className="absolute inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
-
-      {/* Modal */}
       <div
-        className="relative z-10 w-full max-w-md bg-white rounded-xl shadow-xl p-6"
-        onClick={(e) => e.stopPropagation()} // prevent close when clicking inside
+        className="relative z-10 w-full max-w-md bg-white rounded-xl shadow-xl p-6 overflow-hidden"
+        onClick={(e) => e.stopPropagation()}
       >
-        {/* Header */}
+        {loading && <OverlayLoader message="LOGGING IN..." />}
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-xl font-semibold">Login</h2>
           <button
@@ -120,9 +142,12 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
           </button>
         </div>
 
-        {/* Form */}
         <form className="space-y-4" onSubmit={handleSubmit}>
-          {error && <p className="text-sm text-red-500">{error}</p>}
+          {error && (
+            <p className="text-sm text-red-500 bg-red-50 px-3 py-2 rounded-md">
+              {error}
+            </p>
+          )}
 
           <div>
             <label className="text-sm text-gray-600">Email</label>
@@ -135,9 +160,9 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
               required
             />
           </div>
+
           <div>
             <label className="text-sm text-gray-600">Password</label>
-
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
@@ -147,11 +172,10 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
                 onChange={(e) => setPassword(e.target.value)}
                 required
               />
-
               <button
                 type="button"
                 onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600"
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400"
                 tabIndex={-1}
               >
                 {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -161,8 +185,7 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
 
           <div className="flex items-center justify-between text-sm">
             <label className="flex items-center gap-2">
-              <input type="checkbox" />
-              Remember me
+              <input type="checkbox" /> Remember me
             </label>
             <button
               type="button"
@@ -176,15 +199,14 @@ const LoginModal = ({ open, onClose, onSignUp, onForgotPassword }: Props) => {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-primary text-white py-2 rounded-md"
+            className="w-full bg-primary text-white py-2 rounded-md disabled:opacity-60"
           >
             {loading ? "Logging in..." : "Login"}
           </button>
         </form>
 
-        {/* Footer */}
         <p className="text-sm text-center text-gray-500 mt-4">
-          Don’t have an account?{" "}
+          Don't have an account?{" "}
           <button
             type="button"
             onClick={onSignUp}

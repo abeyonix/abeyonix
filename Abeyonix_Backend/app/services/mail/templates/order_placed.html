@@ -1,0 +1,193 @@
+{% extends "base.html" %}
+
+{% block content %}
+
+<!-- Greeting -->
+<h2 style="margin:0 0 8px; color:#1a1a2e; font-size:22px;">
+  We've received your order! 🛍️
+</h2>
+<p style="margin:0 0 20px; color:#555;">
+  Hi <strong>{{ user.first_name }} {{ user.last_name }}</strong>,
+</p>
+<p style="margin:0 0 10px; color:#555;">
+  Thank you for shopping with us! Your order
+  <strong>#{{ order.order_number }}</strong> has been received and is currently
+  being reviewed by our team.
+</p>
+<p style="margin:0 0 24px; color:#555;">
+  We'll send you another email once your order is
+  <strong>confirmed</strong>. This usually takes a short while —
+  hang tight! 😊
+</p>
+
+<!-- View Order Button -->
+<div style="text-align:center; margin: 28px 0;">
+  <a href="{{ frontend_url }}/orders/{{ order.order_number }}"
+     style="display:inline-block; background-color:#2563eb; color:#ffffff;
+            padding: 13px 32px; border-radius:6px; font-size:15px;
+            font-weight:bold; text-decoration:none; letter-spacing:0.3px;">
+    View Order Details
+  </a>
+</div>
+
+<hr style="border:none; border-top:1px solid #eeeeee; margin: 28px 0;" />
+
+<!-- Order Summary -->
+<h3 style="margin:0 0 16px; color:#1a1a2e; font-size:16px;">
+  🛍️ Order Summary
+</h3>
+
+<table width="100%" cellpadding="0" cellspacing="0"
+       style="border-collapse:collapse; font-size:14px;">
+
+  <!-- Table Header -->
+  <tr style="background-color:#f0f4ff;">
+    <td colspan="2"
+        style="padding:10px 12px; font-weight:bold; color:#333;
+               border-bottom:1px solid #dde3f0;">
+      Product
+    </td>
+    <td style="padding:10px 12px; font-weight:bold; color:#333;
+               text-align:center; border-bottom:1px solid #dde3f0; white-space:nowrap;">
+      Qty
+    </td>
+    <td style="padding:10px 12px; font-weight:bold; color:#333;
+               text-align:right; border-bottom:1px solid #dde3f0; white-space:nowrap;">
+      Price
+    </td>
+  </tr>
+
+  <!-- Items -->
+  {% for item in order_items %}
+  <tr>
+    <!-- Product Image -->
+    <td style="padding:12px 8px 12px 12px; border-bottom:1px solid #f0f0f0;
+               vertical-align:middle; width:64px;">
+      {% if item.image_url %}
+        <img src="{{ media_url }}{{ item.image_url }}"
+             alt="{{ item.product_name }}"
+             width="56" height="56"
+             style="border-radius:6px; object-fit:cover;
+                    display:block; border:1px solid #eee;" />
+      {% else %}
+        <!-- Placeholder if no image -->
+        <div style="width:56px; height:56px; background:#f0f0f0;
+                    border-radius:6px; display:flex; align-items:center;
+                    justify-content:center; font-size:20px; color:#ccc;">
+          📦
+        </div>
+      {% endif %}
+    </td>
+
+    <!-- Product Name + SKU -->
+    <td style="padding:12px 8px; color:#444;
+               border-bottom:1px solid #f0f0f0; vertical-align:middle;">
+      <span style="font-weight:600; color:#222;">
+        {{ item.product_name }}
+      </span><br/>
+      <span style="font-size:12px; color:#999;">
+        SKU: {{ item.sku }}
+      </span>
+    </td>
+
+    <!-- Qty -->
+    <td style="padding:12px 8px; text-align:center; color:#444;
+               border-bottom:1px solid #f0f0f0; vertical-align:middle;
+               white-space:nowrap;">
+      × {{ item.quantity }}
+    </td>
+
+    <!-- Price -->
+    <td style="padding:12px 12px 12px 8px; text-align:right; color:#444;
+               border-bottom:1px solid #f0f0f0; vertical-align:middle;
+               white-space:nowrap;">
+      ₹{{ "%.2f"|format(item.unit_price) }}
+    </td>
+  </tr>
+  {% endfor %}
+
+  <!-- Subtotal -->
+  <tr>
+    <td colspan="3"
+        style="padding:10px 12px; text-align:right; color:#555;
+               font-size:13px;">
+      Subtotal
+    </td>
+    <td style="padding:10px 12px; text-align:right; color:#555; font-size:13px;">
+      ₹{{ "%.2f"|format(order.subtotal_amount) }}
+    </td>
+  </tr>
+
+  <!-- Tax -->
+  <tr>
+    <td colspan="3"
+        style="padding:4px 12px; text-align:right; color:#555; font-size:13px;">
+      Tax
+    </td>
+    <td style="padding:4px 12px; text-align:right; color:#555; font-size:13px;">
+      ₹{{ "%.2f"|format(order.tax_amount) }}
+    </td>
+  </tr>
+
+  <!-- Shipping -->
+  <tr>
+    <td colspan="3"
+        style="padding:4px 12px; text-align:right; color:#555; font-size:13px;">
+      Shipping
+    </td>
+    <td style="padding:4px 12px; text-align:right; color:#555; font-size:13px;">
+      {% if order.shipping_amount == 0 %}
+        <span style="color:#16a34a; font-weight:600;">FREE</span>
+      {% else %}
+        ₹{{ "%.2f"|format(order.shipping_amount) }}
+      {% endif %}
+    </td>
+  </tr>
+
+  <!-- Total -->
+  <tr style="background-color:#f0f4ff;">
+    <td colspan="3"
+        style="padding:14px 12px; text-align:right;
+               font-weight:bold; color:#1a1a2e; font-size:15px;">
+      Total Paid
+    </td>
+    <td style="padding:14px 12px; text-align:right;
+               font-weight:bold; color:#2563eb; font-size:16px;">
+      ₹{{ "%.2f"|format(order.total_amount) }}
+    </td>
+  </tr>
+
+</table>
+
+<hr style="border:none; border-top:1px solid #eeeeee; margin: 28px 0;" />
+
+<!-- Delivery Address -->
+<h3 style="margin:0 0 12px; color:#1a1a2e; font-size:16px;">
+  📍 Delivery Address
+</h3>
+<table cellpadding="0" cellspacing="0"
+       style="background:#f8f8f8; border-radius:6px;
+              font-size:14px; color:#555; width:100%;">
+  <tr>
+    <td style="padding:16px 20px; line-height:1.8;">
+      <strong style="color:#333; font-size:15px;">
+        {{ address.contact_name }}
+      </strong><br/>
+      {{ address.address_line1 }}
+      {% if address.address_line2 %}, {{ address.address_line2 }}{% endif %},<br/>
+      {{ address.city }}, {{ address.state_province }} — {{ address.postal_code }}<br/>
+      {{ address.country }}<br/>
+      📞 {{ address.contact_phone }}
+    </td>
+  </tr>
+</table>
+
+<p style="margin:28px 0 0; color:#888; font-size:13px; text-align:center;">
+  Questions about your order? Contact us at
+  <a href="mailto:{{ company.company_email }}"
+     style="color:#2563eb; text-decoration:none;">
+    {{ company.company_email }}
+  </a>
+</p>
+
+{% endblock %}

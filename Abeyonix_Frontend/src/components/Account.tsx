@@ -44,6 +44,43 @@ const pageData = {
 
 type Section = "profile" | "orders" | "address";
 
+const getOrderStatusStyle = (status: string) => {
+  const normalized = status?.toUpperCase();
+
+  switch (normalized) {
+    case "PLACED":
+      return "bg-blue-100 text-blue-700";
+
+    case "CONFIRMED":
+      return "bg-indigo-100 text-indigo-700";
+
+    case "PROCESSING":
+      return "bg-yellow-100 text-yellow-700";
+
+    case "SHIPPED":
+      return "bg-cyan-100 text-cyan-700";
+
+    case "OUT_FOR_DELIVERY":
+      return "bg-orange-100 text-orange-700";
+
+    case "DELIVERED":
+      return "bg-green-100 text-green-700";
+
+    case "CANCELLED":
+      return "bg-red-100 text-red-700";
+
+    case "RETURNED":
+      return "bg-purple-100 text-purple-700";
+
+    case "REFUNDED":
+      return "bg-gray-200 text-gray-700";
+
+    default:
+      // Custom statuses
+      return "bg-slate-100 text-slate-700";
+  }
+};
+
 const Account = () => {
   const { user, logout, updateUserContext } = useAuth();
   const [activeSection, setActiveSection] = useState<Section | null>("profile");
@@ -66,7 +103,6 @@ const Account = () => {
   const navigate = useNavigate();
   const location = useLocation();
 
-
   const [addressForm, setAddressForm] = useState<UserAddressCreate>({
     address_type: "",
     address_line1: "",
@@ -75,22 +111,24 @@ const Account = () => {
     state_province: "",
     postal_code: "",
     country: "",
+    contact_name: "",
+    contact_phone: "",
     is_default: false,
   });
 
   useEffect(() => {
-  const params = new URLSearchParams(location.search);
-  const section = params.get("section");
+    const params = new URLSearchParams(location.search);
+    const section = params.get("section");
 
-  if (section === "orders") {
-    setActiveSection("orders");
-  } else if (section === "address") {
-    setActiveSection("address");
-  } else {
-    // ✅ Default fallback
-    setActiveSection("profile");
-  }
-}, [location.search]);
+    if (section === "orders") {
+      setActiveSection("orders");
+    } else if (section === "address") {
+      setActiveSection("address");
+    } else {
+      // ✅ Default fallback
+      setActiveSection("profile");
+    }
+  }, [location.search]);
 
   useEffect(() => {
     if (!user?.user_id) return;
@@ -150,6 +188,8 @@ const Account = () => {
       state_province: "",
       postal_code: "",
       country: "",
+      contact_name: "",
+      contact_phone: "",
       is_default: false,
     });
   };
@@ -343,6 +383,9 @@ const Account = () => {
                     )}
 
                     <p className="font-semibold">{address.address_type}</p>
+                    <p className="text-sm font-medium mt-2">
+                      {address.contact_name} ({address.contact_phone})
+                    </p>
                     <p className="text-sm text-gray-600">
                       {address.address_line1}
                       {address.address_line2 && `, ${address.address_line2}`}
@@ -402,6 +445,8 @@ const Account = () => {
 
                 {[
                   ["address_type", "Address Type"],
+                  ["contact_name", "Contact Name"],
+                  ["contact_phone", "Contact Phone"],
                   ["address_line1", "Address Line 1"],
                   ["address_line2", "Address Line 2"],
                   ["city", "City"],
@@ -411,6 +456,7 @@ const Account = () => {
                 ].map(([name, label]) => (
                   <input
                     key={name}
+                    type={name === "contact_phone" ? "tel" : "text"}
                     placeholder={label}
                     value={(addressForm as any)[name] || ""}
                     onChange={(e) =>
@@ -447,7 +493,7 @@ const Account = () => {
                 {orders.map((order) => (
                   <div
                     key={order.order_id}
-                    onClick={() => setSelectedOrder(order)}
+                    onClick={() => navigate(`/orders/${order.order_number}`)}
                     className="p-4 border rounded-lg cursor-pointer hover:shadow transition"
                   >
                     <div className="flex justify-between">
@@ -460,8 +506,10 @@ const Account = () => {
 
                       <div className="text-right">
                         <p className="font-semibold">₹{order.total_amount}</p>
-                        <p className="text-sm text-orange-500">
-                          {order.order_status}
+                        <p
+                          className={`inline-flex items-center px-2.5 py-1 rounded-full text-xs font-semibold mt-1 ${getOrderStatusStyle(order.order_status)}`}
+                        >
+                          {order.order_status.replace("_", " ")}
                         </p>
                       </div>
                     </div>
@@ -471,27 +519,23 @@ const Account = () => {
                       <img
                         src={`${MEDIA_BASE_URL}${order.items[0]?.primary_image}`}
                         className="w-14 h-14 object-cover rounded"
+                        alt={order.items[0]?.product_name}
                       />
                       <div>
                         <p className="text-sm font-medium">
                           {order.items[0]?.product_name}
                         </p>
-                        <p className="text-xs text-gray-500">
-                          +{order.items.length - 1} more items
-                        </p>
+                        {order.items.length > 1 && (
+                          <p className="text-xs text-gray-500">
+                            +{order.items.length - 1} more item
+                            {order.items.length - 1 > 1 ? "s" : ""}
+                          </p>
+                        )}
                       </div>
                     </div>
                   </div>
                 ))}
               </div>
-            )}
-
-            {/* ORDER DETAILS MODAL */}
-            {selectedOrder && (
-              <OrderDetailsModal
-                order={selectedOrder}
-                onClose={() => setSelectedOrder(null)}
-              />
             )}
           </div>
         );
@@ -644,78 +688,3 @@ const Account = () => {
 };
 
 export default Account;
-
-const OrderDetailsModal = ({
-  order,
-  onClose,
-}: {
-  order: UserOrderWithItems;
-  onClose: () => void;
-}) => {
-  return (
-    <div className="fixed inset-0 bg-black/50 flex justify-center items-center z-50">
-      <div className="bg-white w-full max-w-2xl rounded-xl p-6 space-y-6 overflow-y-auto max-h-[90vh]">
-        {/* Header */}
-        <div className="flex justify-between items-center">
-          <h2 className="text-lg font-semibold">{order.order_number}</h2>
-          <button onClick={onClose}>
-            <X />
-          </button>
-        </div>
-
-        {/* Items */}
-        <div className="space-y-4">
-          {order.items.map((item) => (
-            <div key={item.product_id} className="flex gap-4">
-              <img src={`${MEDIA_BASE_URL}${item.primary_image}`} className="w-16 h-16 rounded" />
-              <div>
-                <p className="font-medium">{item.product_name}</p>
-                <p className="text-sm text-gray-500">Qty: {item.quantity}</p>
-                <p className="text-sm font-semibold">₹{item.total_price}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Tracking */}
-        <TrackingTimeline tracking={order.tracking} />
-
-        {/* Total */}
-        <div className="text-right font-semibold text-lg">
-          Total: ₹{order.total_amount}
-        </div>
-      </div>
-    </div>
-  );
-};
-
-const TrackingTimeline = ({ tracking }: { tracking: OrderTrackingInfo[] }) => {
-  return (
-    <div className="space-y-4">
-      <h3 className="font-semibold">Order Tracking</h3>
-
-      <div className="relative pl-6">
-        {tracking.map((step, index) => (
-          <div key={index} className="mb-6 relative">
-            {/* Line */}
-            {index !== tracking.length - 1 && (
-              <span className="absolute left-[7px] top-5 w-[2px] h-full bg-gray-300"></span>
-            )}
-
-            {/* Dot */}
-            <span className="absolute left-0 top-1 w-4 h-4 rounded-full bg-green-500 animate-pulse"></span>
-
-            {/* Content */}
-            <div className="ml-4">
-              <p className="font-medium">{step.status}</p>
-              <p className="text-sm text-gray-500">{step.description}</p>
-              <p className="text-xs text-gray-400">
-                {new Date(step.updated_at).toLocaleString()}
-              </p>
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
