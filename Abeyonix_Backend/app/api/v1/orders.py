@@ -140,7 +140,7 @@ def get_checkout_page_data(
         })
 
     # 3️⃣ Totals
-    tax = subtotal * Decimal("0.02")
+    tax = subtotal * Decimal("0.00")
     shipping = Decimal("0.00")
     total_amount = subtotal + tax + shipping
 
@@ -158,19 +158,22 @@ def get_checkout_page_data(
 #
 # --------------------------------------------------
 
-def send_order_emails(db: Session, order, order_items, user):
-    admin_emails = get_admin_emails(db)
-
-    if admin_emails:
-        html_content = order_notification_email(order, order_items, user)
-
-        for email in admin_emails:
-            send_email(
-                to_email=email,
-                subject=f"New Order Received - {order.order_number}",
-                html_content=html_content
-            )
-
+def send_order_emails( order, order_items, user):
+    db = SessionLocal()
+    try:
+        admin_emails = get_admin_emails(db)
+        if admin_emails:
+            html_content = order_notification_email(order, order_items, user)
+            for email in admin_emails:
+                send_email(
+                    to_email=email,
+                    subject=f"New Order Received - {order.order_number}",
+                    html_content=html_content
+                )
+    except Exception as e:
+        print("Admin email error:", e)
+    finally:
+        db.close()
 
 
 
@@ -336,12 +339,12 @@ def verify_payment(
 
     # ── 10. Send customer email ────────────────────────────────────────────────
     background_tasks.add_task(
-        send_order_placed_email, db, order, order_items, user, address
+        send_order_placed_email, order, order_items, user, address
     )
 
     # ── 11. Send admin email (your existing one) ───────────────────────────────
     background_tasks.add_task(
-        send_order_emails, db, order, order_items, user
+        send_order_emails, order, order_items, user
     )
 
     return {
@@ -882,13 +885,15 @@ def get_all_orders(
 
 
 
-def _handle_confirmed(db: Session, background_tasks: BackgroundTasks, order):
+def _handle_confirmed(order):
     """
     Runs when admin sets status → CONFIRMED:
       1. Deduct stock (with row lock)
       2. Generate invoice PDF
       3. Send confirmation email
     """
+
+    db = SessionLocal()
 
     # ── 1. Fetch order items ───────────────────────────────────────
     db_items = db.query(OrderItem).filter(
@@ -941,9 +946,11 @@ def _handle_confirmed(db: Session, background_tasks: BackgroundTasks, order):
     )
 
     # ── 5. Queue confirmation email ────────────────────────────────
-    background_tasks.add_task(
-        send_order_confirmed_email, db, order, user, invoice
-    )
+    send_order_confirmed_email(
+    order,
+    user,
+    invoice
+)
 
 
 def handle_confirmed_background(order_id: int):
@@ -953,7 +960,7 @@ def handle_confirmed_background(order_id: int):
         order = db.query(Order).filter(Order.id == order_id).first()
 
         if order:
-            _handle_confirmed(db, order)
+            _handle_confirmed(order)
 
         db.commit()
 
@@ -976,7 +983,7 @@ def _handle_shipped(db: Session, background_tasks: BackgroundTasks, order, track
     ).first()
 
     background_tasks.add_task(
-        send_order_shipped_email, db, order, user, address, tracking
+        send_order_shipped_email, order, user, address, tracking
     )
 
 
@@ -989,7 +996,7 @@ def _handle_delivered(db: Session, background_tasks: BackgroundTasks, order):
     ).first()
 
     background_tasks.add_task(
-        send_order_delivered_email, db, order, user, address
+        send_order_delivered_email, order, user, address
     )
 
 
@@ -1038,10 +1045,8 @@ def update_order_tracking(
         # )
 
         background_tasks.add_task(
-            _handle_confirmed,
-            db,
-            background_tasks,
-            order
+            handle_confirmed_background,
+            order.id
         )
     elif request.status == "SHIPPED":
         _handle_shipped(db, background_tasks, order, tracking)

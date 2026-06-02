@@ -97,7 +97,7 @@ def get_file_url(file_key: str, expires_in: int = 2592000) -> str:
         )
         return url
     else:
-        base_url = os.getenv("API_URL", "http://localhost:8000")
+        base_url = os.getenv("BACKEND_URL", "http://localhost:8000")
         return f"{base_url}/media/{file_key}"
 
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
+import { toast } from "sonner";
 
 import {
   User,
@@ -14,7 +15,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useAuth } from "@/context/AuthContext";
 import { Pencil, Save, X } from "lucide-react";
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { getUserById, updateUser } from "@/api/user";
 import { UserResponse, UpdateUserPayload } from "@/types/user";
 import {
@@ -81,10 +82,21 @@ const getOrderStatusStyle = (status: string) => {
   }
 };
 
+const ADDRESS_TYPES = [
+  "Home",
+  "Office",
+  "Work",
+  "Apartment",
+  "Hostel",
+  "Warehouse",
+  "Other",
+];
+
 const Account = () => {
   const { user, logout, updateUserContext } = useAuth();
   const [activeSection, setActiveSection] = useState<Section | null>("profile");
   const [profile, setProfile] = useState<UserResponse | null>(null);
+  const addressFormRef = useRef<HTMLDivElement>(null);
   const [loadingProfile, setLoadingProfile] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
   const [formData, setFormData] = useState<UpdateUserPayload>({});
@@ -102,7 +114,9 @@ const Account = () => {
   );
   const navigate = useNavigate();
   const location = useLocation();
-
+  const [addressErrors, setAddressErrors] = useState<Record<string, boolean>>(
+    {},
+  );
   const [addressForm, setAddressForm] = useState<UserAddressCreate>({
     address_type: "",
     address_line1: "",
@@ -197,13 +211,38 @@ const Account = () => {
   const handleAddressSubmit = async () => {
     if (!user?.user_id) return;
 
+    const requiredFields = [
+      "address_type",
+      "contact_name",
+      "contact_phone",
+      "address_line1",
+      "city",
+      "state_province",
+      "postal_code",
+      "country",
+    ];
+
+    const errors: Record<string, boolean> = {};
+    requiredFields.forEach((field) => {
+      if (!(addressForm as any)[field]?.toString().trim()) {
+        errors[field] = true;
+      }
+    });
+
+    if (Object.keys(errors).length > 0) {
+      setAddressErrors(errors);
+      toast.error("Please fill all required fields.");
+      return;
+    }
+
+    setAddressErrors({});
+
     if (editingAddress) {
       const updated = await updateUserAddress(
         editingAddress.address_id,
         user.user_id,
         addressForm as UserAddressUpdate,
       );
-
       setAddresses((prev) =>
         prev.map((a) => (a.address_id === updated.address_id ? updated : a)),
       );
@@ -214,6 +253,7 @@ const Account = () => {
 
     setShowAddressForm(false);
     resetAddressForm();
+    setAddressErrors({});
   };
 
   const handleDeleteAddress = async (addressId: number) => {
@@ -355,6 +395,7 @@ const Account = () => {
                 onClick={() => {
                   resetAddressForm();
                   setShowAddressForm(true);
+                  setAddressErrors({});
                 }}
                 className="flex items-center gap-2 text-drone-orange font-semibold"
               >
@@ -402,6 +443,7 @@ const Account = () => {
                           setEditingAddress(address);
                           setAddressForm(address);
                           setShowAddressForm(true);
+                          setAddressErrors({});
                         }}
                         className="text-sm text-drone-orange"
                       >
@@ -428,53 +470,6 @@ const Account = () => {
                     </div>
                   </div>
                 ))}
-              </div>
-            )}
-
-            {/* Address Form */}
-            {showAddressForm && (
-              <div className="border rounded-xl p-4 bg-gray-50 space-y-4">
-                <div className="flex justify-between items-center">
-                  <h3 className="font-semibold">
-                    {editingAddress ? "Edit Address" : "Add Address"}
-                  </h3>
-                  <button onClick={() => setShowAddressForm(false)}>
-                    <X size={18} />
-                  </button>
-                </div>
-
-                {[
-                  ["address_type", "Address Type"],
-                  ["contact_name", "Contact Name"],
-                  ["contact_phone", "Contact Phone"],
-                  ["address_line1", "Address Line 1"],
-                  ["address_line2", "Address Line 2"],
-                  ["city", "City"],
-                  ["state_province", "State"],
-                  ["postal_code", "Postal Code"],
-                  ["country", "Country"],
-                ].map(([name, label]) => (
-                  <input
-                    key={name}
-                    type={name === "contact_phone" ? "tel" : "text"}
-                    placeholder={label}
-                    value={(addressForm as any)[name] || ""}
-                    onChange={(e) =>
-                      setAddressForm((prev) => ({
-                        ...prev,
-                        [name]: e.target.value,
-                      }))
-                    }
-                    className="w-full px-3 py-2 border rounded-md"
-                  />
-                ))}
-
-                <button
-                  onClick={handleAddressSubmit}
-                  className="w-full bg-drone-orange text-white py-2 rounded-md"
-                >
-                  {editingAddress ? "Update Address" : "Save Address"}
-                </button>
               </div>
             )}
           </div>
@@ -681,6 +676,304 @@ const Account = () => {
           </div>
         </section>
       </main>
+
+      {/* ================= ADDRESS MODAL ================= */}
+      {showAddressForm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+            {/* Modal Header */}
+            <div className="flex justify-between items-center px-6 py-5 border-b sticky top-0 bg-white z-10 rounded-t-2xl">
+              <div>
+                <h3 className="font-bold text-xl text-gray-800">
+                  {editingAddress ? "✏️ Edit Address" : "📍 Add New Address"}
+                </h3>
+                <p className="text-sm text-gray-400 mt-0.5">
+                  {editingAddress
+                    ? "Update your delivery address"
+                    : "Save a new delivery address"}
+                </p>
+              </div>
+              <button
+                onClick={() => {
+                  setShowAddressForm(false);
+                  resetAddressForm();
+                  setAddressErrors({});
+                }}
+                className="w-8 h-8 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-600 transition"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="px-6 py-5 space-y-4">
+              {/* Required legend */}
+              <p className="text-xs text-gray-400">
+                Fields marked with{" "}
+                <span className="text-red-500 font-bold">*</span> are required
+              </p>
+
+              {/* Address Type */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  Address Type <span className="text-red-500">*</span>
+                </label>
+                <select
+                  value={addressForm.address_type}
+                  onChange={(e) => {
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      address_type: e.target.value,
+                    }));
+                    setAddressErrors((prev) => ({
+                      ...prev,
+                      address_type: false,
+                    }));
+                  }}
+                  className={`w-full px-4 py-3 border-2 rounded-xl text-sm transition focus:outline-none focus:border-drone-orange
+        ${addressErrors.address_type ? "border-red-400 bg-red-50" : "border-gray-200"}
+        ${addressForm.address_type ? "text-gray-800" : "text-gray-400"}`}
+                >
+                  <option value="">🏷️ Select Address Type</option>
+                  {ADDRESS_TYPES.map((type) => (
+                    <option key={type} value={type}>
+                      {type}
+                    </option>
+                  ))}
+                </select>
+                {addressErrors.address_type && (
+                  <p className="text-red-500 text-xs mt-1">
+                    Address type is required
+                  </p>
+                )}
+              </div>
+
+              {/* Contact Info Row */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Contact Name <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="👤 Full Name"
+                    value={addressForm.contact_name}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        contact_name: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({
+                        ...prev,
+                        contact_name: false,
+                      }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.contact_name ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.contact_name && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Phone Number <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="tel"
+                    placeholder="📞 Phone"
+                    value={addressForm.contact_phone}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        contact_phone: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({
+                        ...prev,
+                        contact_phone: false,
+                      }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.contact_phone ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.contact_phone && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Address Line 1 */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  Address Line 1 <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="🏠 House / Flat / Block No."
+                  value={addressForm.address_line1}
+                  onChange={(e) => {
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      address_line1: e.target.value,
+                    }));
+                    setAddressErrors((prev) => ({
+                      ...prev,
+                      address_line1: false,
+                    }));
+                  }}
+                  className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+        ${addressErrors.address_line1 ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                />
+                {addressErrors.address_line1 && (
+                  <p className="text-red-500 text-xs mt-1">Required</p>
+                )}
+              </div>
+
+              {/* Address Line 2 */}
+              <div>
+                <label className="block text-xs font-semibold text-gray-500 mb-1">
+                  Address Line 2{" "}
+                  <span className="text-gray-400 font-normal">(Optional)</span>
+                </label>
+                <input
+                  type="text"
+                  placeholder="🏠 Street / Area / Landmark"
+                  value={addressForm.address_line2}
+                  onChange={(e) =>
+                    setAddressForm((prev) => ({
+                      ...prev,
+                      address_line2: e.target.value,
+                    }))
+                  }
+                  className="w-full px-4 py-3 border-2 border-gray-200 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400"
+                />
+              </div>
+
+              {/* City & State */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    City <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="🏙️ City"
+                    value={addressForm.city}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({ ...prev, city: false }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.city ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.city && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    State <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="🗺️ State"
+                    value={addressForm.state_province}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        state_province: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({
+                        ...prev,
+                        state_province: false,
+                      }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.state_province ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.state_province && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+              </div>
+
+              {/* Postal & Country */}
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Postal Code <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="📮 Postal Code"
+                    value={addressForm.postal_code}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        postal_code: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({
+                        ...prev,
+                        postal_code: false,
+                      }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.postal_code ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.postal_code && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 mb-1">
+                    Country <span className="text-red-500">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    placeholder="🌍 Country"
+                    value={addressForm.country}
+                    onChange={(e) => {
+                      setAddressForm((prev) => ({
+                        ...prev,
+                        country: e.target.value,
+                      }));
+                      setAddressErrors((prev) => ({ ...prev, country: false }));
+                    }}
+                    className={`w-full px-4 py-3 border-2 rounded-xl text-sm focus:outline-none focus:border-drone-orange transition placeholder:text-gray-400
+          ${addressErrors.country ? "border-red-400 bg-red-50" : "border-gray-200"}`}
+                  />
+                  {addressErrors.country && (
+                    <p className="text-red-500 text-xs mt-1">Required</p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Modal Footer */}
+            <div className="px-6 py-5 border-t flex gap-3 rounded-b-2xl bg-gray-50">
+              <button
+                onClick={() => {
+                  setShowAddressForm(false);
+                  resetAddressForm();
+                  setAddressErrors({});
+                }}
+                className="flex-1 border-2 border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-semibold hover:bg-gray-100 transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAddressSubmit}
+                className="flex-1 bg-drone-orange text-white py-3 rounded-xl text-sm font-semibold hover:opacity-90 transition shadow-md"
+              >
+                {editingAddress ? "Update Address" : "Save Address"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

@@ -3,6 +3,7 @@
 import os
 from jinja2 import Environment, FileSystemLoader
 from sqlalchemy.orm import Session
+from app.db.session import SessionLocal
 
 from app.models.company_settings import CompanySettings
 from app.models.product import ProductMedia
@@ -49,7 +50,8 @@ def attach_product_images(db: Session, order_items: list) -> list:
 # ─────────────────────────────────────────────────────────────────────────────
 # ✅ MAIL 1 — Order Placed
 # ─────────────────────────────────────────────────────────────────────────────
-def send_order_placed_email(db: Session, order, order_items: list, user, address):
+def send_order_placed_email(order, order_items: list, user, address):
+    db = SessionLocal()
     try:
         company = get_company(db)
         if not company:
@@ -87,7 +89,8 @@ def send_order_placed_email(db: Session, order, order_items: list, user, address
 # ─────────────────────────────────────────────────────────────────────────────
 # ✅ MAIL 2 — Order Confirmed (with Invoice Download)
 # ─────────────────────────────────────────────────────────────────────────────
-def send_order_confirmed_email(db: Session, order, user, invoice):
+def send_order_confirmed_email(order, user, invoice):
+    db = SessionLocal()
     try:
         company = get_company(db)
         if not company:
@@ -121,7 +124,8 @@ def send_order_confirmed_email(db: Session, order, user, invoice):
 # ─────────────────────────────────────────────────────────────────────────────
 # ✅ MAIL 3 — Order Shipped
 # ─────────────────────────────────────────────────────────────────────────────
-def send_order_shipped_email(db: Session, order, user, address, tracking):
+def send_order_shipped_email(order, user, address, tracking):
+    db = SessionLocal()
     try:
         company = get_company(db)
         if not company:
@@ -155,7 +159,8 @@ def send_order_shipped_email(db: Session, order, user, address, tracking):
 # ─────────────────────────────────────────────────────────────────────────────
 # ✅ MAIL 4 — Order Delivered (with Star Rating)
 # ─────────────────────────────────────────────────────────────────────────────
-def send_order_delivered_email(db: Session, order, user, address):
+def send_order_delivered_email(order, user, address):
+    db = SessionLocal()
     try:
         company = get_company(db)
         if not company:

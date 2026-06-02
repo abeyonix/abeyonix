@@ -4,12 +4,14 @@ from fastapi.staticfiles import StaticFiles
 from app.db.session import engine, SessionLocal   
 from app.db.base import Base
 from app.db.seed_roles import seed_default_roles
+from app.core.config import settings
 from app.api.v1 import (
     auth, users, categories,
     sub_categories, attributes,
     product, shop, address, cart,
     orders, payment, services, inquiry,
-    company_settings, invoice, rating
+    company_settings, invoice, rating,
+    dashboard
 )
 
 Base.metadata.create_all(bind=engine)
@@ -22,6 +24,12 @@ app = FastAPI(
 )
 
 # app.mount("/media", StaticFiles(directory="media"), name="media")
+if settings.APP_ENV.lower() == "development":
+    app.mount(
+        "/media",
+        StaticFiles(directory="media"),
+        name="media"
+    )
 
 
 # Add Startup Event
@@ -61,7 +69,7 @@ app.include_router(inquiry.router)
 app.include_router(company_settings.router)
 app.include_router(invoice.router)
 app.include_router(rating.router)
-
+app.include_router(dashboard.router)
 
 # Health Check
 @app.get("/")

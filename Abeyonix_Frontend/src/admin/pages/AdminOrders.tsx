@@ -738,15 +738,34 @@ Total Amount: ${formatPrice(order.total_amount)}
 
               {/* Add New Tracking Button */}
               {!addTrackingForm && (
-                <button
-                  onClick={() => setAddTrackingForm(true)}
-                  className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors"
-                >
-                  <Plus size={20} className="text-gray-400" />
-                  <span className="text-sm text-gray-600">
-                    Add Tracking Update
-                  </span>
-                </button>
+                <>
+                  {["DELIVERED", "CANCELLED", "RETURNED", "REFUNDED"].includes(
+                    trackingModal?.order_status?.toUpperCase(),
+                  ) ? (
+                    <div className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-200 rounded-lg bg-gray-50 cursor-not-allowed">
+                      <span className="text-sm text-gray-400">
+                        {trackingModal?.order_status === "DELIVERED" &&
+                          "✅ Order already delivered"}
+                        {trackingModal?.order_status === "CANCELLED" &&
+                          "❌ Order has been cancelled"}
+                        {trackingModal?.order_status === "RETURNED" &&
+                          "🔄 Order has been returned"}
+                        {trackingModal?.order_status === "REFUNDED" &&
+                          "💰 Order has been refunded"}
+                      </span>
+                    </div>
+                  ) : (
+                    <button
+                      onClick={() => setAddTrackingForm(true)}
+                      className="w-full mt-6 flex items-center justify-center gap-2 px-4 py-2.5 border-2 border-dashed border-gray-300 rounded-lg hover:border-orange-400 hover:bg-orange-50 transition-colors"
+                    >
+                      <Plus size={20} className="text-gray-400" />
+                      <span className="text-sm text-gray-600">
+                        Add Tracking Update
+                      </span>
+                    </button>
+                  )}
+                </>
               )}
 
               {/* Add Tracking Form */}

@@ -1,9 +1,17 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Package, CheckCircle2, Clock, Truck, Circle } from "lucide-react";
+import {
+  ArrowLeft,
+  MapPin,
+  Package,
+  CheckCircle2,
+  Clock,
+  Truck,
+  Circle,
+} from "lucide-react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { getOrderDetails } from "@/api/order";
+import { getOrderDetails, cancelOrder } from "@/api/order";
 import { OrderDetailsResponse, OrderTrackingInfo } from "@/types/order";
 
 const MEDIA_BASE_URL = import.meta.env.VITE_MEDIA_BASE_URL;
@@ -23,8 +31,10 @@ const pageData = {
 const TrackingIcon = ({ status }: { status: string }) => {
   const s = status.toLowerCase();
   if (s.includes("deliver")) return <CheckCircle2 className="w-4 h-4" />;
-  if (s.includes("ship") || s.includes("transit")) return <Truck className="w-4 h-4" />;
-  if (s.includes("process") || s.includes("confirm")) return <Clock className="w-4 h-4" />;
+  if (s.includes("ship") || s.includes("transit"))
+    return <Truck className="w-4 h-4" />;
+  if (s.includes("process") || s.includes("confirm"))
+    return <Clock className="w-4 h-4" />;
   return <Circle className="w-4 h-4" />;
 };
 
@@ -52,9 +62,10 @@ const TrackingTimeline = ({ tracking }: { tracking: OrderTrackingInfo[] }) => {
             {/* Dot */}
             <span
               className={`relative z-10 mt-0.5 flex-shrink-0 w-8 h-8 rounded-full flex items-center justify-center shadow-sm
-                ${isFirst
-                  ? "bg-green-500 text-white ring-4 ring-green-100 animate-pulse"
-                  : "bg-white text-gray-400 border-2 border-gray-200"
+                ${
+                  isFirst
+                    ? "bg-green-500 text-white ring-4 ring-green-100 animate-pulse"
+                    : "bg-white text-gray-400 border-2 border-gray-200"
                 }`}
             >
               <TrackingIcon status={step.status} />
@@ -62,11 +73,15 @@ const TrackingTimeline = ({ tracking }: { tracking: OrderTrackingInfo[] }) => {
 
             {/* Content */}
             <div className="pt-0.5">
-              <p className={`font-semibold text-sm ${isFirst ? "text-green-600" : "text-gray-700"}`}>
+              <p
+                className={`font-semibold text-sm ${isFirst ? "text-green-600" : "text-gray-700"}`}
+              >
                 {step.status}
               </p>
               {step.description && (
-                <p className="text-sm text-gray-500 mt-0.5">{step.description}</p>
+                <p className="text-sm text-gray-500 mt-0.5">
+                  {step.description}
+                </p>
               )}
               {step.location && (
                 <p className="text-xs text-gray-400 flex items-center gap-1 mt-1">
@@ -99,15 +114,40 @@ const OrderDetailsPage = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
+  const [cancelling, setCancelling] = useState(false);
+  const [cancelError, setCancelError] = useState<string | null>(null);
+  const [showCancelConfirm, setShowCancelConfirm] = useState(false);
+
   useEffect(() => {
     if (!orderNumber) return;
 
     setLoading(true);
     getOrderDetails(orderNumber)
       .then(setOrder)
-      .catch((err) => setError(typeof err === "string" ? err : "Failed to load order details."))
+      .catch((err) =>
+        setError(
+          typeof err === "string" ? err : "Failed to load order details.",
+        ),
+      )
       .finally(() => setLoading(false));
   }, [orderNumber]);
+
+  const handleCancelOrder = async () => {
+    if (!order) return;
+
+    setCancelling(true);
+    setCancelError(null);
+    try {
+      await cancelOrder(order.order_id);
+      const updated = await getOrderDetails(orderNumber!);
+      setOrder(updated);
+      setShowCancelConfirm(false);
+    } catch (err: any) {
+      setCancelError(typeof err === "string" ? err : "Failed to cancel order.");
+    } finally {
+      setCancelling(false);
+    }
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
@@ -125,7 +165,10 @@ const OrderDetailsPage = () => {
               {pageData.breadcrumbs.map((item, index) => (
                 <span key={index}>
                   {item.href ? (
-                    <a href={item.href} className="hover:opacity-80 transition-opacity">
+                    <a
+                      href={item.href}
+                      className="hover:opacity-80 transition-opacity"
+                    >
                       {item.label}
                     </a>
                   ) : (
@@ -169,40 +212,57 @@ const OrderDetailsPage = () => {
               {/* Order meta bar */}
               <div className="flex flex-wrap items-center justify-between gap-3 mb-6 bg-white border border-gray-100 rounded-xl px-5 py-4 shadow-sm">
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Order Number</p>
-                  <p className="font-bold text-gray-800 text-lg">{order.order_number}</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
+                    Order Number
+                  </p>
+                  <p className="font-bold text-gray-800 text-lg">
+                    {order.order_number}
+                  </p>
                 </div>
                 <div>
-                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">Placed On</p>
+                  <p className="text-xs text-gray-400 uppercase tracking-wider mb-0.5">
+                    Placed On
+                  </p>
                   <p className="text-sm font-medium text-gray-700">
                     {new Date(order.created_at).toLocaleString("en-IN", {
-                      day: "numeric", month: "long", year: "numeric",
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
                     })}
                   </p>
                 </div>
-                <div className="flex gap-3">
+                <div className="flex flex-wrap items-center gap-3">
                   <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-orange-50 text-orange-600 border border-orange-200">
                     <Package className="w-3 h-3" />
                     {order.order_status}
                   </span>
                   <span
                     className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border
-                      ${order.payment_status.toLowerCase() === "paid"
-                        ? "bg-green-50 text-green-600 border-green-200"
-                        : "bg-yellow-50 text-yellow-600 border-yellow-200"
-                      }`}
+    ${
+      order.payment_status.toLowerCase() === "paid"
+        ? "bg-green-50 text-green-600 border-green-200"
+        : "bg-yellow-50 text-yellow-600 border-yellow-200"
+    }`}
                   >
                     {order.payment_status}
                   </span>
+
+                  {/* Cancel button — only for PLACED or CONFIRMED */}
+                  {["PLACED", "CONFIRMED"].includes(order.order_status) && (
+                    <button
+                      onClick={() => setShowCancelConfirm(true)}
+                      className="inline-flex items-center px-3 py-1 rounded-full text-xs font-semibold border-2 border-red-300 text-red-500 hover:bg-red-50 transition"
+                    >
+                      Cancel Order
+                    </button>
+                  )}
                 </div>
               </div>
 
               {/* ── Two-column layout ── */}
               <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
-
                 {/* LEFT — Tracking + Shipping Address */}
                 <div className="lg:col-span-2 space-y-6">
-
                   {/* Tracking Card */}
                   <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
                     <h3 className="font-semibold text-gray-800 mb-5 flex items-center gap-2">
@@ -248,7 +308,6 @@ const OrderDetailsPage = () => {
 
                 {/* RIGHT — Items + Payment Breakdown */}
                 <div className="lg:col-span-3 space-y-6">
-
                   {/* Items Card */}
                   <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
                     <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
@@ -258,7 +317,10 @@ const OrderDetailsPage = () => {
 
                     <div className="divide-y divide-gray-50">
                       {order.items.map((item) => (
-                        <div key={item.product_id} className="flex gap-4 py-4 first:pt-0 last:pb-0">
+                        <div
+                          key={item.product_id}
+                          className="flex gap-4 py-4 first:pt-0 last:pb-0"
+                        >
                           <img
                             src={`${MEDIA_BASE_URL}${item.primary_image}`}
                             alt={item.product_name}
@@ -268,10 +330,13 @@ const OrderDetailsPage = () => {
                             <p className="font-medium text-gray-800 text-sm leading-tight">
                               {item.product_name}
                             </p>
-                            <p className="text-xs text-gray-400 mt-0.5">SKU: {item.sku}</p>
+                            <p className="text-xs text-gray-400 mt-0.5">
+                              SKU: {item.sku}
+                            </p>
                             <div className="flex items-center justify-between mt-2">
                               <span className="text-xs text-gray-500">
-                                ₹{item.unit_price.toLocaleString("en-IN")} × {item.quantity}
+                                ₹{item.unit_price.toLocaleString("en-IN")} ×{" "}
+                                {item.quantity}
                               </span>
                               <span className="font-semibold text-gray-800 text-sm">
                                 ₹{item.total_price.toLocaleString("en-IN")}
@@ -285,27 +350,37 @@ const OrderDetailsPage = () => {
 
                   {/* Payment Breakdown Card */}
                   <div className="bg-white border border-gray-100 rounded-xl p-5 shadow-sm">
-                    <h3 className="font-semibold text-gray-800 mb-4">Payment Summary</h3>
+                    <h3 className="font-semibold text-gray-800 mb-4">
+                      Payment Summary
+                    </h3>
 
                     <div className="space-y-2.5 text-sm">
                       <div className="flex justify-between text-gray-600">
                         <span>Subtotal</span>
-                        <span>₹{order.subtotal_amount.toLocaleString("en-IN")}</span>
+                        <span>
+                          ₹{order.subtotal_amount.toLocaleString("en-IN")}
+                        </span>
                       </div>
 
                       {order.discount_amount > 0 && (
                         <div className="flex justify-between text-green-600">
                           <span>Discount</span>
-                          <span>− ₹{order.discount_amount.toLocaleString("en-IN")}</span>
+                          <span>
+                            − ₹{order.discount_amount.toLocaleString("en-IN")}
+                          </span>
                         </div>
                       )}
 
                       <div className="flex justify-between text-gray-600">
                         <span>Shipping</span>
                         <span>
-                          {order.shipping_amount === 0
-                            ? <span className="text-green-600 font-medium">Free</span>
-                            : `₹${order.shipping_amount.toLocaleString("en-IN")}`}
+                          {order.shipping_amount === 0 ? (
+                            <span className="text-green-600 font-medium">
+                              Free
+                            </span>
+                          ) : (
+                            `₹${order.shipping_amount.toLocaleString("en-IN")}`
+                          )}
                         </span>
                       </div>
 
@@ -316,17 +391,100 @@ const OrderDetailsPage = () => {
 
                       <div className="border-t border-dashed border-gray-200 pt-3 mt-1 flex justify-between font-bold text-gray-900 text-base">
                         <span>Total</span>
-                        <span>₹{order.total_amount.toLocaleString("en-IN")}</span>
+                        <span>
+                          ₹{order.total_amount.toLocaleString("en-IN")}
+                        </span>
                       </div>
                     </div>
                   </div>
-
                 </div>
               </div>
             </>
           )}
         </div>
       </main>
+
+      {/* ── Cancel Confirm Modal ── */}
+      {showCancelConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 px-4">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md p-6">
+            {/* Icon */}
+            <div className="flex justify-center mb-4">
+              <div className="w-14 h-14 rounded-full bg-red-100 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+            </div>
+
+            {/* Text */}
+            <h3 className="text-lg font-bold text-gray-800 text-center mb-2">
+              Cancel This Order?
+            </h3>
+            <p className="text-sm text-gray-500 text-center mb-1">
+              Order{" "}
+              <span className="font-semibold text-gray-700">
+                #{order?.order_number}
+              </span>
+            </p>
+            <p className="text-sm text-gray-400 text-center mb-6">
+              This action cannot be undone. If you've already paid, a refund
+              will be processed within 5–7 business days.
+            </p>
+
+            {/* Error */}
+            {cancelError && (
+              <div className="mb-4 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 text-center">
+                {cancelError}
+              </div>
+            )}
+
+            {/* Buttons */}
+            <div className="flex gap-3">
+              <button
+                onClick={() => {
+                  setShowCancelConfirm(false);
+                  setCancelError(null);
+                }}
+                disabled={cancelling}
+                className="flex-1 border-2 border-gray-200 text-gray-600 py-3 rounded-xl text-sm font-semibold hover:bg-gray-50 transition disabled:opacity-50"
+              >
+                Keep Order
+              </button>
+              <button
+                onClick={handleCancelOrder}
+                disabled={cancelling}
+                className="flex-1 bg-red-500 text-white py-3 rounded-xl text-sm font-semibold hover:bg-red-600 transition disabled:opacity-50 flex items-center justify-center gap-2"
+              >
+                {cancelling ? (
+                  <>
+                    <svg
+                      className="animate-spin h-4 w-4"
+                      viewBox="0 0 24 24"
+                      fill="none"
+                    >
+                      <circle
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
+                        strokeWidth="4"
+                      />
+                      <path
+                        className="opacity-75"
+                        fill="currentColor"
+                        d="M4 12a8 8 0 018-8v8H4z"
+                      />
+                    </svg>
+                    Cancelling...
+                  </>
+                ) : (
+                  "Yes, Cancel"
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Footer />
     </div>

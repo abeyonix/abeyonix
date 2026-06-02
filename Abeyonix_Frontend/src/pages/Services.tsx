@@ -40,7 +40,7 @@ const ServicesPage = () => {
       "https://cdn-icons-png.flaticon.com/512/149/149060.png",
   },
   {
-    title: "IoT-Based Project Development",
+    title: "IoT-Based Project Development", 
     description:
       "Transform your ideas into real-world IoT solutions with smart devices, sensors, and automation systems built for efficiency and innovation.",
     image:

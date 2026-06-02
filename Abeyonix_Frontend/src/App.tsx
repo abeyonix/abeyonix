@@ -45,6 +45,7 @@ import AdminServices from "./admin/pages/AdminServices";
 import AdminInquiryPage from "@/admin/pages/AdminInquiryPage";
 import AdminCompanySettings from "@/admin/pages/AdminCompanySettings";
 import OrderDetailsPage from "./pages/OrderDetailsPage";
+import OrderTrackPage from "@/pages/OrderTrackPage";
 const queryClient = new QueryClient();
 
 const App = () => {
@@ -90,6 +91,7 @@ const App = () => {
                       path="/orders/:orderNumber"
                       element={<OrderDetailsPage />}
                     />
+                    <Route path="/track/:orderNumber" element={<OrderTrackPage />} />
                     <Route
                       path="/order-success/:orderId"
                       element={<OrderSuccessPage />}
